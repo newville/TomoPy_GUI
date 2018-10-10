@@ -1011,6 +1011,7 @@ class APS_13BM(wx.Frame):
             save_data = save_data / info.max
             save_data = 255 * save_data
             save_data = save_data.astype(np.uint8)
+            save_data = save_data.astype(np.uint16)
             print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
         ## If user wants 16 bit image from raw data.
         ## This is very slow.
@@ -1030,7 +1031,7 @@ class APS_13BM(wx.Frame):
             save_data = save_data / save_data.max()
             save_data = 65535 * save_data
             print('save data are ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-            save_data = save_data.astype(np.uint16)
+            save_data = save_data.astype(int)
             print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
         ## If user wants 8 bit image after normalization/reconstruction.
         ## This is very slow.
@@ -1043,6 +1044,9 @@ class APS_13BM(wx.Frame):
             print('save data are ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
             save_data = save_data.astype(np.uint8)
             print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())            
+        '''
+        This begins data export.
+        '''
         ## Create tif stack within a temp folder in the current working directory.
         if self.save_data_type == '.tif':
             print('Beginning saving tiffs')
