@@ -984,7 +984,9 @@ class APS_13BM(wx.Frame):
     def save_recon(self, event=None):
         '''
         Method for saving. Data are converted based on user specified options,
-        then exported as tif stack or netcdf3 .volume file.
+        then exported as tif stack or netcdf3 .volume file. Format conversions 
+        are very slow. Raw data usually saves quickly, but data that has been
+        changed to float format is slow.
         '''
         self.status_ID.SetLabel('Saving')
         ## Setting up timestamp.
@@ -1000,43 +1002,8 @@ class APS_13BM(wx.Frame):
             if self.data.shape[1] != self.data.shape[2]: #padded and NOT reconstructed.
                 save_data = self.data[:,:,self.npad:self.data.shape[2]-self.npad]
         print('save_data dim are ', save_data.shape, save_data.dtype)
-        
-        
-        
-        
-        ## Need to scale data according to user input.
-        ## These do not work.
-        ## If user wants 16 bit image after normalization/reconstruction.
-        if save_data.dtype == 'float32' and self.save_dtype == 'u2':
-            print('made it to 16 bit from float32 clause')
-            print('starting data type is ', save_data.dtype)
-            save_data = save_data / save_data.max()
-            save_data = 65535 * save_data
-            print('interger data is ', save_data.dtype)
-            print('save_data converted to uint16')
-        
-        # If user wants 8 bit image after normalization/reconstruction.
-        if save_data.dtype == 'float32' and self.save_dtype == 'u1':
-            print('made it to 8 bit from float32 clause')
-            print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-            save_data = save_data / save_data.max()
-            print('division done ', save_data.mix(), save_data.max())
-            save_data = 255 * save_data
-            print('save data are ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-            save_data = save_data.astype(np.uint8)
-            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-        
-        if (save_data.dtype == 'int16' and self.save_dtype == 'u2'):
-            print('made it to 16 bit from int 16 clause')
-            print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-            info = np.iinfo(save_data.dtype)
-            save_data = save_data / info.max
-            save_data = 65535 * save_data
-            save_data = save_data.astype(np.uint16)
-            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())       
-        
-        ## This one works.
         ## If user wants 8 bit image from raw data.
+        ## This is very slow.
         if (save_data.dtype == 'int16' and self.save_dtype == 'u1'):
             print('made it to 8 bit from int 16 clause')
             print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
@@ -1045,7 +1012,37 @@ class APS_13BM(wx.Frame):
             save_data = 255 * save_data
             save_data = save_data.astype(np.uint8)
             print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-        
+        ## If user wants 16 bit image from raw data.
+        ## This is very slow.
+        if (save_data.dtype == 'int16' and self.save_dtype == 'u2'):
+            print('made it to 16 bit from int 16 clause')
+            print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+            info = np.iinfo(save_data.dtype)
+            save_data = save_data / info.max
+            save_data = 65535 * save_data
+            save_data = save_data.astype(np.uint16)
+            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())       
+        ## If user wants 16 bit image after normalization/reconstruction.
+        ## This is very slow.
+        if save_data.dtype == 'float32' and self.save_dtype == 'u2':
+            print('made it to 16 bit from float32 clause')
+            print('starting data type is ', save_data.dtype)
+            save_data = save_data / save_data.max()
+            save_data = 65535 * save_data
+            print('save data are ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+            save_data = save_data.astype(np.uint16)
+            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+        ## If user wants 8 bit image after normalization/reconstruction.
+        ## This is very slow.
+        if save_data.dtype == 'float32' and self.save_dtype == 'u1':
+            print('made it to 8 bit from float32 clause')
+            print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+            save_data = save_data / save_data.max()
+            print('division done ', save_data.min(), save_data.max())
+            save_data = 255 * save_data
+            print('save data are ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+            save_data = save_data.astype(np.uint8)
+            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())            
         ## Create tif stack within a temp folder in the current working directory.
         if self.save_data_type == '.tif':
             print('Beginning saving tiffs')
