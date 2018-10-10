@@ -1,5 +1,5 @@
 '''
-TomoPy GUI designed for APS 13BM.
+TomoPy GUI version designed for APS 13BM.
 Code written by B.M. Gibson.
 Version 1.0 (October 9, 2018)
 
@@ -228,7 +228,7 @@ class APS_13BM(wx.Frame):
         self.save_dtype = 'f4'
         self.save_dtype_list = [
                 '8 bit', #u1
-                '16 bit', #i2 
+                '16 bit', #u2 
                 '32 bit float'#f4
                 ]    
         self.save_dtype_menu = wx.ComboBox(self.panel, value = '32 bit float', choices = self.save_dtype_list)
@@ -966,7 +966,7 @@ class APS_13BM(wx.Frame):
             self.save_dtype = 'u1'
             print('data type changed to ', self.save_dtype)
         if self.save_dtype == '16 bit':
-            self.save_dtype = 'i2'
+            self.save_dtype = 'u2'
             print('data type changed to ', self.save_dtype)
         if self.save_dtype == '32 bit float':
             self.save_dtype = 'f4'
@@ -983,8 +983,8 @@ class APS_13BM(wx.Frame):
 
     def save_recon(self, event=None):
         '''
-        Method for saving. If .tif is used, a new folder called 'temp' will be 
-        created in current working directory.
+        Method for saving. Data are converted based on user specified options,
+        then exported as tif stack or netcdf3 .volume file.
         '''
         self.status_ID.SetLabel('Saving')
         ## Setting up timestamp.
@@ -1006,27 +1006,35 @@ class APS_13BM(wx.Frame):
         
         ## Need to scale data according to user input.
         ## These do not work.
-        ## If user wants 16 bit image after reconstruction.
-#        if save_data.dtype == 'float32' and self.save_dtype == 'i2':
-#            print('made it to 16 bit from float32 clause')
-#            print('starting data type is ', save_data.dtype)
-#            save_data = save_data / save_data.max()
-#            save_data = 65535 * save_data
-#            print('interger data is ', save_data.dtype)
-#            print('save_data converted to uint16')
-        ## If user wants 8 bit image (after reconstruction).
-#        if save_data.dtype == 'float32' and self.save_dtype == 'u1':  #want 8 bit
-#            print('made it to 8 bit from float32 clause')
-#            print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-#            save_data = save_data / save_data.max()
-#            print('division done ', save_data.mix(), save_data.max())
-#            save_data = 255 * save_data
-#            print('save data are ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-#            save_data = save_data.astype(np.uint8)
-#            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-#        
-#        
-#        
+        ## If user wants 16 bit image after normalization/reconstruction.
+        if save_data.dtype == 'float32' and self.save_dtype == 'u2':
+            print('made it to 16 bit from float32 clause')
+            print('starting data type is ', save_data.dtype)
+            save_data = save_data / save_data.max()
+            save_data = 65535 * save_data
+            print('interger data is ', save_data.dtype)
+            print('save_data converted to uint16')
+        
+        # If user wants 8 bit image after normalization/reconstruction.
+        if save_data.dtype == 'float32' and self.save_dtype == 'u1':
+            print('made it to 8 bit from float32 clause')
+            print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+            save_data = save_data / save_data.max()
+            print('division done ', save_data.mix(), save_data.max())
+            save_data = 255 * save_data
+            print('save data are ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+            save_data = save_data.astype(np.uint8)
+            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+        
+        if (save_data.dtype == 'int16' and self.save_dtype == 'u2'):
+            print('made it to 16 bit from int 16 clause')
+            print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+            info = np.iinfo(save_data.dtype)
+            save_data = save_data / info.max
+            save_data = 65535 * save_data
+            save_data = save_data.astype(np.uint16)
+            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())       
+        
         ## This one works.
         ## If user wants 8 bit image from raw data.
         if (save_data.dtype == 'int16' and self.save_dtype == 'u1'):
