@@ -639,7 +639,7 @@ class APS_13BM(wx.Frame):
                                                     ncore = self.ncore,
                                                     nchunk = self.nchunk)
         t1 = time.time()
-        print('Zinger removal: ', t1-t0)
+        print('artifacts removed: ', t1-t0)
         self.status_ID.SetLabel('Artifacts Removed.')
     
 
@@ -896,13 +896,9 @@ class APS_13BM(wx.Frame):
         try: 
             print('original data dimensions are ', self.data.shape, type(self.data), self.data.dtype)
             self.rot_center = float(self.est_rot_center_blank.GetValue())
+            ## Need to add padding to center if padded.
             if self.npad != 0:
                 self.rot_center = float(self.rot_center)+self.npad
-            ## Corrects the I/I0 ring artifact surrounding volume after reconstruction.
-#            self.data = tp.remove_neg(self.data)
-            
-            ## This returns float32.
-            
             self.data = tp.recon(self.data, 
                                  self.theta, 
                                  center = self.rot_center, 
@@ -913,8 +909,7 @@ class APS_13BM(wx.Frame):
                                  nchunk = self.nchunk)
             self.data = tp.remove_nan(self.data)
             print('made it through recon.', self.data.shape, type(self.data), self.data.dtype)        
-            self.status_ID.SetLabel('Reconstruction Complete')
-            print('reconstruction done')                
+            self.status_ID.SetLabel('Reconstruction Complete')               
         except:
             '''
             Runs if not normalized, so tripped for not having pad value.
@@ -944,6 +939,7 @@ class APS_13BM(wx.Frame):
     def remove_ring(self, event):
         '''
         Removes ring artifact from reconstructed data.
+        This is really slow.
         '''
         self.status_ID.SetLabel('Removing Ring.')    
         ## Setting up timestamp.
@@ -1058,7 +1054,7 @@ class APS_13BM(wx.Frame):
             save_data = save_data.astype(np.uint16)
         print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
         '''
-        This begins data export.
+        Data exporting.
         '''
         ## Create tif stack within a temp folder in the current working directory.
         if self.save_data_type == '.tif':
@@ -1083,6 +1079,7 @@ class APS_13BM(wx.Frame):
             volume[:] = save_data
             print('volume ', volume.shape, type(volume), volume.dtype)
             ncfile.close()   
+        del save_data
         self.status_ID.SetLabel('Saving completed.')
         t1 = time.time()
         total = t1-t0
@@ -1093,7 +1090,7 @@ class APS_13BM(wx.Frame):
     
     
     ''' 
-    Below here is where the various plotting definitions occur.
+    Plotting methods.
     '''       
     def create_ImageFrame(self):
         '''
