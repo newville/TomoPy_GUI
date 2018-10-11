@@ -1,0 +1,6 @@
+Known issues for TomoPy_GUI 1.0
+
+- netcdf3 data export fails
+- tiff export has odd intensity range
+- movie not implemented 
+- tilt correction adjusts data making it fail to plot

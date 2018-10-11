@@ -1,13 +1,16 @@
 '''
-TomoPy GUI designed for APS 13BM.
+TomoPy GUI version designed for APS 13BM.
 Code written by B.M. Gibson.
 Version 1.0 (October 9, 2018)
 
 Updates:
     Version 1.0.1 (October 9, 2018) B.M.Gibson
         - Updated title and commented code.
-    Version 1.0.2 (Date) Contributor
-        - Modifications
+    Version 1.0.2 (October 11, 2018) B.M.Gibson
+        - Updated zinger removal to artifact removal
+        - Scaled data correctly during data export
+        - Allowed user to chose number of cores and chunks for TomoPy
+        - Allowed TomoPy to work in memory when possible and not duplicate arrays
 
 '''
 ## Importing packages.
@@ -17,6 +20,7 @@ import glob
 import gc
 import time
 import scipy
+import skimage
 
 from netCDF4 import Dataset
 
@@ -100,7 +104,7 @@ class APS_13BM(wx.Frame):
         self.npad = 0
         self.pad_size_combo = wx.ComboBox(self.panel, value = 'Auto Pad', choices = pad_size_opt)
         self.pad_size_combo.Bind(wx.EVT_COMBOBOX, self.pad_size_combo_recall)
-        zinger_button = wx.Button(self.panel, -1, label = 'Remove Zingers', size = (-1,-1))
+        zinger_button = wx.Button(self.panel, -1, label = 'Remove Artifacts', size = (-1,-1))
         zinger_button.Bind(wx.EVT_BUTTON, self.zinger_removal)
         
         '''
@@ -225,10 +229,11 @@ class APS_13BM(wx.Frame):
         self.pp_filter_button.Bind(wx.EVT_BUTTON, self.filter_pp_data)
 
         ## Initializes data export choices.
-        self.save_dtype = 'f4'
+        self.save_dtype = 'i2'
         self.save_dtype_list = [
-                '8 bit', #u1
-                '16 bit', #i2 
+                '8 bit unsigned', #u1
+                '16 bit signed', #i2
+                '16 bit unsigned',
                 '32 bit float'#f4
                 ]    
         self.save_dtype_menu = wx.ComboBox(self.panel, value = '32 bit float', choices = self.save_dtype_list)
@@ -243,6 +248,15 @@ class APS_13BM(wx.Frame):
         
         save_recon_button = wx.Button(self.panel, -1, label = "Save Reconstruction", size = (-1,-1))
         save_recon_button.Bind(wx.EVT_BUTTON, self.save_recon)
+        
+        ## Computation Options panel
+        comp_opt_title = wx.StaticText(self.panel, -1, label = 'Computation Options', size = (-1,-1))
+        ncores_label = wx.StaticText(self.panel, -1, label = 'Number of Cores:', size = (-1,-1))
+        self.ncore_blank = wx.TextCtrl(self.panel, value = '4')
+        self.ncore = 4
+        nchunks_label = wx.StaticText(self.panel, -1, label = '  Number of Chunks: ', size = (-1,-1))
+        self.nchunk_blank = wx.TextCtrl(self.panel, -1, value = '128')
+        self.nchunk = 128
         
         '''
         Setting up the GUI Sizers for layout of initialized widgets.
@@ -283,7 +297,8 @@ class APS_13BM(wx.Frame):
         pp_label_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         pp_filter_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         save_recon_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+        comp_opt_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        comp_opt_cores_n_chunks_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         '''
         Adding widgets to LEFT Sizer.
         '''
@@ -369,6 +384,13 @@ class APS_13BM(wx.Frame):
         save_recon_Sizer.Add(self.save_data_type_menu, wx.ALL|wx.EXPAND, 5)
         save_recon_Sizer.Add(save_recon_button, wx.ALL|wx.EXPAND, 5)
         
+        ## Computation Options panel
+        comp_opt_title_Sizer.Add(comp_opt_title, wx.ALL|wx.EXPAND, 5)
+        comp_opt_cores_n_chunks_Sizer.Add(ncores_label, wx.ALL|wx.EXPAND, 5)
+        comp_opt_cores_n_chunks_Sizer.Add(self.ncore_blank, wx.ALL|wx.EXPAND, 5)
+        comp_opt_cores_n_chunks_Sizer.Add(nchunks_label, wx.ALL|wx.EXPAND, 5)
+        comp_opt_cores_n_chunks_Sizer.Add(self.nchunk_blank, wx.ALL|wx.EXPAND, 5)
+        
         '''
         Adding to leftSizer.
         '''
@@ -408,6 +430,9 @@ class APS_13BM(wx.Frame):
         rightSizer.Add(pp_filter_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(save_recon_Sizer, 0, wx.ALL|wx.EXPAND, 5)
+        rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
+        rightSizer.Add(comp_opt_title_Sizer, 0, wx.ALL|wx.EXPAND, 5)
+        rightSizer.Add(comp_opt_cores_n_chunks_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         
         '''
         Adding left and right sizers to main sizer.
@@ -443,9 +468,6 @@ class APS_13BM(wx.Frame):
                     fname = file
                     _path, _fname = os.path.split(path)
                     self.fname1 = file 
-                    ## Number of cores is specified for now. May later add text
-                    ## box user option. 
-                    self.ncore = 4
                     if _fname.endswith('.nc'):
                         '''
                         Reading in .nc files. APS 13BM format. 
@@ -565,6 +587,7 @@ class APS_13BM(wx.Frame):
             return
         else:
             del self.data
+            del save_data
             self.path_ID.SetLabel('')
             self.file_ID.SetLabel('')
             self.status_ID.SetLabel('Memory Cleared')
@@ -603,14 +626,23 @@ class APS_13BM(wx.Frame):
 
     def zinger_removal(self, event):
         '''
-        Remove zinger artifact from raw data.
+        Remove artifacts from raw data.
         '''
-        self.status_ID.SetLabel('Removing Zingers')
+        self.status_ID.SetLabel('Correcting Artifacts')
         t0 = time.time()
-        self.data = tp.prep.stripe.remove_stripe_fw(self.data)
+        ## Pull user specified processing power.
+        self.nchunk = int(self.nchunk_blank.GetValue())
+        self.ncore = int(self.ncore_blank.GetValue())
+        self.data = tp.remove_outlier(self.data,
+                                      dif = 1.2,    #number provided in tomoRecon
+                                      ncore = self.ncore,)
+        print('outliers done')
+        self.data = tp.prep.stripe.remove_stripe_fw(self.data,
+                                                    ncore = self.ncore,
+                                                    nchunk = self.nchunk)
         t1 = time.time()
-        print('Zinger removal: ', t1-t0)
-        self.status_ID.SetLabel('Zingers removed.')
+        print('artifacts removed: ', t1-t0)
+        self.status_ID.SetLabel('Artifacts Removed.')
     
 
     def normalization(self, event):
@@ -626,10 +658,12 @@ class APS_13BM(wx.Frame):
         del self.flat1
         del self.flat2
         ## Only single value is collected for dark current from APS 13BM.
-        ## Allow user to adjust this value.
         ## Create array of same size for normalizing.
         self.dark = float(self.dark_ID.GetValue())
         self.dark = self.flat*0+self.dark
+        ## Pull user specified processing power.
+        self.nchunk = int(self.nchunk_blank.GetValue())
+        self.ncore = int(self.ncore_blank.GetValue())
         ## First normalization using flats and dark current.
         self.data = tp.normalize(self.data, 
                                  flat=self.flat, 
@@ -646,20 +680,20 @@ class APS_13BM(wx.Frame):
                 return
             else:
                 self.npad = int( (int(self.pad_size) - self.data.shape[2] ) / 2)
-                self.data = tp.misc.morph.pad(self.data, axis = 2, npad =self.npad, mode = 'edge')
-#                self.sx = self.data.shape[2]
-#                self.sx_ID.SetLabel(str(self.sx))
-        ## Removing extreme values. Code directly from Francesco De Carlo's GUI code.
-        ## https://github.com/tomography/ufot
-        ## Accessed 10/9/2018
-        upper = np.percentile(self.data, 99)
-        lower = np.percentile(self.data, 1)
-        self.data[self.data > upper] = upper
-        self.data[self.data < lower] = lower
-        ## Set status update for user.
-        self.status_ID.SetLabel('Preprocessing Complete')
+                self.data = tp.misc.morph.pad(self.data, 
+                                              axis = 2, 
+                                              npad =self.npad, 
+                                              mode = 'edge')
+        
         ## Delete dark field array as we no longer need it.
         del self.dark
+        ## Scale data for I0 as 0.
+        tp.minus_log(self.data, out = self.data)
+        self.data = tp.remove_nan(self.data, 
+                                  val = 0.,
+                                  ncore = self.ncore)
+        ## Set status update for user.
+        self.status_ID.SetLabel('Preprocessing Complete')
         ## Timestamping.
         t1 = time.time()
         total = t1-t0
@@ -858,15 +892,15 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Reconstructing.')
         ## Setting up timestamp.
         t0 = time.time()
+        ## Pull user specified processing power.
+        self.nchunk = int(self.nchunk_blank.GetValue())
+        self.ncore = int(self.ncore_blank.GetValue())
         try: 
             print('original data dimensions are ', self.data.shape, type(self.data), self.data.dtype)
             self.rot_center = float(self.est_rot_center_blank.GetValue())
+            ## Need to add padding to center if padded.
             if self.npad != 0:
                 self.rot_center = float(self.rot_center)+self.npad
-            ## Corrects the I/I0 ring artifact surrounding volume after reconstruction.
-#            self.data = tp.remove_neg(self.data)
-            self.data = tp.minus_log(self.data)
-            ## This returns float32.
             self.data = tp.recon(self.data, 
                                  self.theta, 
                                  center = self.rot_center, 
@@ -874,11 +908,10 @@ class APS_13BM(wx.Frame):
                                  algorithm = self.recon_type, 
                                  filter_name = self.filter_type,
                                  ncore = self.ncore,
-                                 nchunk = 128)
+                                 nchunk = self.nchunk)
             self.data = tp.remove_nan(self.data)
             print('made it through recon.', self.data.shape, type(self.data), self.data.dtype)        
-            self.status_ID.SetLabel('Reconstruction Complete')
-            print('reconstruction done')                
+            self.status_ID.SetLabel('Reconstruction Complete')               
         except:
             '''
             Runs if not normalized, so tripped for not having pad value.
@@ -908,11 +941,18 @@ class APS_13BM(wx.Frame):
     def remove_ring(self, event):
         '''
         Removes ring artifact from reconstructed data.
+        This is really slow.
         '''
         self.status_ID.SetLabel('Removing Ring.')    
         ## Setting up timestamp.
         t0 = time.time()
-        self.data = tp.remove_ring(self.data)
+        ## Pull user specified processing power.
+        self.nchunk = int(self.nchunk_blank.GetValue())
+        self.ncore = int(self.ncore_blank.GetValue())
+        tp.remove_ring(self.data,
+                       ncore = self.ncore,
+                       nchunk = self.nchunk,
+                       out = self.data)
         t1 = time.time()
         print('made it through ring removal.', t1-t0)
         self.status_ID.SetLabel('Ring removed.')
@@ -962,11 +1002,14 @@ class APS_13BM(wx.Frame):
         8 bit, 16 bit, or 32 bit.
         '''    
         self.save_dtype = self.save_dtype_menu.GetStringSelection()
-        if self.save_dtype == '8 bit':
+        if self.save_dtype == '8 bit unsigned':
             self.save_dtype = 'u1'
             print('data type changed to ', self.save_dtype)
-        if self.save_dtype == '16 bit':
+        if self.save_dtype == '16 bit signed':
             self.save_dtype = 'i2'
+            print('data type changed to ', self.save_dtype)
+        if self.save_dtype == '16 bit unsigned':
+            self.save_dtype = 'u2'
             print('data type changed to ', self.save_dtype)
         if self.save_dtype == '32 bit float':
             self.save_dtype = 'f4'
@@ -983,12 +1026,21 @@ class APS_13BM(wx.Frame):
 
     def save_recon(self, event=None):
         '''
-        Method for saving. If .tif is used, a new folder called 'temp' will be 
-        created in current working directory.
+        Method for saving. Data are converted based on user specified options,
+        then exported as tif stack or netcdf3 .volume file. Format conversions 
+        are very slow. Raw data usually saves quickly, but data that has been
+        changed to float format is slow.
         '''
         self.status_ID.SetLabel('Saving')
         ## Setting up timestamp.
         t0 = time.time()
+        
+        ## Quick check to see if user is trying to save in unsupported formats.
+        ## Eventually need to change u2 when converting to i2 is supported.
+        if self.save_data_type == '.vol' and (self.save_dtype == 'u1' or self.save_dtype == 'u2'):
+            self.status_ID.SetLabel('netCDF3 does not support unsigned images')
+            return
+        
         ## Setup copy of data to allow user to scale and save at different file
         ## types (e.g. 8 bit, 16 bit, etc.). Must check to see if data are padded.
         if self.npad == 0:
@@ -999,50 +1051,37 @@ class APS_13BM(wx.Frame):
                 save_data = self.data[:,self.npad:self.data.shape[1]-self.npad,self.npad:self.data.shape[2]-self.npad]
             if self.data.shape[1] != self.data.shape[2]: #padded and NOT reconstructed.
                 save_data = self.data[:,:,self.npad:self.data.shape[2]-self.npad]
-        print('save_data dim are ', save_data.shape, save_data.dtype)
+
+        print('starting data shape ', save_data.shape, 'type ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
         
-        
-        
-        
-        ## Need to scale data according to user input.
-        ## These do not work.
-        ## If user wants 16 bit image after reconstruction.
-#        if save_data.dtype == 'float32' and self.save_dtype == 'i2':
-#            print('made it to 16 bit from float32 clause')
-#            print('starting data type is ', save_data.dtype)
-#            save_data = save_data / save_data.max()
-#            save_data = 65535 * save_data
-#            print('interger data is ', save_data.dtype)
-#            print('save_data converted to uint16')
-        ## If user wants 8 bit image (after reconstruction).
-#        if save_data.dtype == 'float32' and self.save_dtype == 'u1':  #want 8 bit
-#            print('made it to 8 bit from float32 clause')
-#            print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-#            save_data = save_data / save_data.max()
-#            print('division done ', save_data.mix(), save_data.max())
-#            save_data = 255 * save_data
-#            print('save data are ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-#            save_data = save_data.astype(np.uint8)
-#            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-#        
-#        
-#        
-        ## This one works.
-        ## If user wants 8 bit image from raw data.
-        if (save_data.dtype == 'int16' and self.save_dtype == 'u1'):
-            print('made it to 8 bit from int 16 clause')
-            print('starting data type is ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-            info = np.iinfo(save_data.dtype)
-            save_data = save_data / info.max
-            save_data = 255 * save_data
+        ## Scales the data appropriately.
+        ## This is extremely slow from float32 to other formats.
+        a = float(save_data.min())
+        b = float(save_data.max()) - a
+        if self.save_dtype == 'u1':
+            save_data = ((save_data - a) / b) * 255.
             save_data = save_data.astype(np.uint8)
-            print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-        
+        if self.save_dtype == 'u2':
+            save_data = ((save_data - a) / b) * 65535.
+            save_data = save_data.astype(np.uint16)
+        ## This second conditional allows raw data to pass without being converted.
+        if self.save_dtype =='i2' and self.data.dtype=='float32':
+            tt0 = time.time()
+            save_data = ((save_data - a) / b)
+            for i in range(save_data.shape[0]):
+                save_data[i,:,:] = skimage.img_as_int(save_data[i,:,:])
+            tt1 = time.time()
+            print('Conversion to int16 time ', tt1-tt0)
+        print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
+        '''
+        Data exporting.
+        '''
         ## Create tif stack within a temp folder in the current working directory.
         if self.save_data_type == '.tif':
             print('Beginning saving tiffs')
             dx.write_tiff_stack(save_data, fname = self._fname, dtype = self.save_dtype, overwrite=True)
-        ## Create a .volume netCDF file.
+        ## Create a .volume netCDF3 file.
+        ## netndf3 does not support unsigned integers.
         if self.save_data_type == '.vol':
             print('Beginning saving .vol')
             ## Creates the empty file, and adds metadata.
@@ -1056,11 +1095,12 @@ class APS_13BM(wx.Frame):
             NZ = ncfile.createDimension('NZ', save_data.shape[0])
             print('save_dtype is ', self.save_dtype)
             ## Creates variable for data based on previously constructed dimensions.
-            volume = ncfile.createVariable('VOLUME', self.save_dtype, ('NZ','NY','NX',)) 
+            volume = ncfile.createVariable('VOLUME',  self.save_dtype, ('NZ','NY','NX',)) 
             ## Copies data into empty file array.
             volume[:] = save_data
             print('volume ', volume.shape, type(volume), volume.dtype)
             ncfile.close()   
+        del save_data
         self.status_ID.SetLabel('Saving completed.')
         t1 = time.time()
         total = t1-t0
@@ -1071,7 +1111,7 @@ class APS_13BM(wx.Frame):
     
     
     ''' 
-    Below here is where the various plotting definitions occur.
+    Plotting methods.
     '''       
     def create_ImageFrame(self):
         '''
