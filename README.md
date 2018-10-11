@@ -4,5 +4,5 @@ Currently designed towards APS 13BM datasets.
 
 Known issues include: 
 - No movie
-- Saving issues with netcdf3 files
-- Tilt correction
+- Data export is slow (particularly for netcdf files).
+- Tilt correction breaks displaying image.
