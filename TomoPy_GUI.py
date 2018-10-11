@@ -20,6 +20,7 @@ import glob
 import gc
 import time
 import scipy
+import skimage
 
 from netCDF4 import Dataset
 
@@ -230,8 +231,9 @@ class APS_13BM(wx.Frame):
         ## Initializes data export choices.
         self.save_dtype = 'i2'
         self.save_dtype_list = [
-                '8 bit', #u1
-                '16 bit', #u2 
+                '8 bit unsigned', #u1
+                '16 bit signed', #i2
+                '16 bit unsigned',
                 '32 bit float'#f4
                 ]    
         self.save_dtype_menu = wx.ComboBox(self.panel, value = '32 bit float', choices = self.save_dtype_list)
@@ -1000,10 +1002,13 @@ class APS_13BM(wx.Frame):
         8 bit, 16 bit, or 32 bit.
         '''    
         self.save_dtype = self.save_dtype_menu.GetStringSelection()
-        if self.save_dtype == '8 bit':
+        if self.save_dtype == '8 bit unsigned':
             self.save_dtype = 'u1'
             print('data type changed to ', self.save_dtype)
-        if self.save_dtype == '16 bit':
+        if self.save_dtype == '16 bit signed':
+            self.save_dtype = 'i2'
+            print('data type changed to ', self.save_dtype)
+        if self.save_dtype == '16 bit unsigned':
             self.save_dtype = 'u2'
             print('data type changed to ', self.save_dtype)
         if self.save_dtype == '32 bit float':
@@ -1029,6 +1034,13 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Saving')
         ## Setting up timestamp.
         t0 = time.time()
+        
+        ## Quick check to see if user is trying to save in unsupported formats.
+        ## Eventually need to change u2 when converting to i2 is supported.
+        if self.save_data_type == '.vol' and self.save_dtype == 'u1' or self.save_dtype == 'u2':
+            self.status_ID.SetLabel('netCDF3 does not support uint8 images')
+            return
+        
         ## Setup copy of data to allow user to scale and save at different file
         ## types (e.g. 8 bit, 16 bit, etc.). Must check to see if data are padded.
         if self.npad == 0:
@@ -1044,14 +1056,22 @@ class APS_13BM(wx.Frame):
         
         ## Scales the data appropriately.
         ## This is extremely slow from float32 to other formats.
-        a = save_data.min()
-        b = save_data.max() - a
+        a = float(save_data.min())
+        b = float(save_data.max()) - a
         if self.save_dtype == 'u1':
             save_data = ((save_data - a) / b) * 255.
             save_data = save_data.astype(np.uint8)
         if self.save_dtype == 'u2':
             save_data = ((save_data - a) / b) * 65535.
             save_data = save_data.astype(np.uint16)
+        ## This second conditional allows raw data to pass without being converted.
+        if self.save_dtype =='i2' and self.data.dtype=='float32':
+            tt0 = time.time()
+            save_data = ((save_data - a) / b)
+            for i in range(save_data.shape[0]):
+                save_data[i,:,:] = skimage.img_as_int(save_data[i,:,:])
+            tt1 = time.time()
+            print('Conversion to int16 time ', tt1-tt0)
         print('save data are ', save_data.shape, save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
         '''
         Data exporting.
@@ -1060,7 +1080,8 @@ class APS_13BM(wx.Frame):
         if self.save_data_type == '.tif':
             print('Beginning saving tiffs')
             dx.write_tiff_stack(save_data, fname = self._fname, dtype = self.save_dtype, overwrite=True)
-        ## Create a .volume netCDF file.
+        ## Create a .volume netCDF3 file.
+        ## netndf3 does not support unsigned integers.
         if self.save_data_type == '.vol':
             print('Beginning saving .vol')
             ## Creates the empty file, and adds metadata.
