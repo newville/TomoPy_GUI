@@ -1037,8 +1037,8 @@ class APS_13BM(wx.Frame):
         
         ## Quick check to see if user is trying to save in unsupported formats.
         ## Eventually need to change u2 when converting to i2 is supported.
-        if self.save_data_type == '.vol' and self.save_dtype == 'u1' or self.save_dtype == 'u2':
-            self.status_ID.SetLabel('netCDF3 does not support uint8 images')
+        if self.save_data_type == '.vol' and (self.save_dtype == 'u1' or self.save_dtype == 'u2'):
+            self.status_ID.SetLabel('netCDF3 does not support unsigned images')
             return
         
         ## Setup copy of data to allow user to scale and save at different file
