@@ -1,6 +1,6 @@
 # TomoPy_GUI
 Graphic user interface for TomoPy.
-TomoPy can be found at https://github.com/tomopy/tomopy
+TomoPy can be found at https://github.com/tomopy/tomopy.
 Currently, GUI is optimized for APS 13BM datasets.
 
 Known issues include: 
