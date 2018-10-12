@@ -878,10 +878,10 @@ class APS_13BM(wx.Frame):
         for i in range(nangles-1): 
             projection = self.data[i,:,:]
             r = scipy.ndimage.rotate(projection, angle)
-            self.data[i,:,:] = float(r) #might need to remove the float from here. Could be breaking it. Integer?
+            self.data[i,:,:] = r #might need to remove the float from here. Could be breaking it. Integer?
         t1 = time.time()
         print('Time to tilt ', t1-t0)
-        print('New dimnsions are ', self.data.shape, 'Data type is', type(self.data))
+        print('New dimnsions are ', self.data.shape, 'Data type is', type(self.data), 'dtype is ', self.data.dtype)
         self.status_ID.SetLabel('Tilt Corrected')
     
 
@@ -1185,7 +1185,7 @@ class APS_13BM(wx.Frame):
             image_frame.Raise()
         else:
             print("cannot figure out how to get data from plot_type ", self.plot_type)
-            
+        del d_data
             
     def movie_maker (self, event):
         '''
