@@ -1,8 +1,8 @@
-# tomopy_GUI
+# TomoPy_GUI
 Graphic user interface for TomoPy.
-Currently designed towards APS 13BM datasets.
+TomoPy can be found at https://github.com/tomopy/tomopy.
+Currently, GUI is optimized for APS 13BM datasets.
 
 Known issues include: 
-- No movie
-- Data export is slow (particularly for netcdf files).
-- Tilt correction breaks displaying image.
+- Movie has not been implemented, so button does not function.
+- Data export is slow due to data conversions before saving. 16 bit signed integer data is particularly slow, and signed data are required for netcdf3. Float32 export does export at a reasonable rate because no conversions occur after reconstruction.
