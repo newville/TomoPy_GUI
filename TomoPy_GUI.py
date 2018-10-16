@@ -1,6 +1,6 @@
 '''
 TomoPy GUI version designed for APS 13BM.
-Code written by B.M. Gibson.
+Code written by B.M. Gibson and Matt Newville.
 Version 1.0 (October 9, 2018)
 
 Updates:
@@ -11,6 +11,8 @@ Updates:
         - Scaled data correctly during data export
         - Allowed user to chose number of cores and chunks for TomoPy
         - Allowed TomoPy to work in memory when possible and not duplicate arrays
+    Version 1.0.3 (October 16, 2018) B.M.Gibson
+        - Movie button
 
 '''
 ## Importing packages.
@@ -1187,16 +1189,40 @@ class APS_13BM(wx.Frame):
             print("cannot figure out how to get data from plot_type ", self.plot_type)
         del d_data
             
+    def onMovieFrame(self, event=None):
+        '''
+        Updates the image from to allow user to view movie.
+        '''
+        self.movie_index += 1
+        nframes = self.data.shape[0]
+        print("Timer ! ", self.movie_index, nframes)
+
+        if self.movie_index >= nframes-1:
+            self.movie_timer.Stop()
+            print("Stop timer")
+            return
+        self.movie_iframe.panel.update_image(self.data[self.movie_index, ::-1, :])
+        
+        print("done show frame ", self.movie_index)
+        
     def movie_maker (self, event):
         '''
-        Yet to be developed.
-        Will display a movie to screen slicing through projections.
+        Currently this is super slow. 
         '''
-        self.status_ID.SetLabel('Movie not yet developed.')
-
-
-
-
+        self.status_ID.SetLabel('Movie started.')
+        self.movie_iframe = ImageFrame(self)
+        d_data = self.data
+        if d_data is not None:       
+            self.movie_iframe.panel.conf.interp = 'hanning'
+            self.movie_iframe.display(1.0*d_data[0,::-1,:], contrast_level=0.5, colormap='gist_gray_r')
+            self.movie_iframe.Show()
+            self.movie_iframe.Raise()
+            self.movie_index = 0
+            self.movie_timer = wx.Timer(self)
+            self.Bind(wx.EVT_TIMER, self.onMovieFrame)
+            print("Start Movie Timer")
+            self.movie_timer.Start(25)
+        del d_data
 '''
 Mainloop of the GUI.
 '''
