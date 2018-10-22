@@ -700,6 +700,7 @@ class APS_13BM(wx.Frame):
         t1 = time.time()
         total = t1-t0
         print('data dimensions ',self.data.shape, type(self.data), self.data.dtype, 'min ', self.data.min(), 'max', self.data.max())
+        print(self.data)
         print('Normalization time was ', total)
     
 
@@ -711,7 +712,7 @@ class APS_13BM(wx.Frame):
         t0 = time.time()
         self.upper_rot_center = float(self.upper_rot_center_blank.GetValue())
         start = int(self.upper_rot_slice_blank.GetValue())        
-        self.data_slice = tp.minus_log(self.data[:,start:start+1,:])
+        self.data_slice = self.data[:,start:start+1,:]
         self.data_slice = tp.recon(self.data_slice,
                                    self.theta,
                                    center = self.upper_rot_center,
@@ -732,7 +733,7 @@ class APS_13BM(wx.Frame):
         t0 = time.time()
         self.lower_rot_center = float(self.lower_rot_center_blank.GetValue())
         start = int(self.lower_rot_slice_blank.GetValue())        
-        self.data_slice = tp.minus_log(self.data[:,start:start+1,:])
+        self.data_slice = self.data[:,start:start+1,:]
         self.data_slice = tp.recon(self.data_slice,
                                    self.theta,
                                    center = self.lower_rot_center,
@@ -937,7 +938,7 @@ class APS_13BM(wx.Frame):
                          sy=self.sy, 
                          sz=self.sz, 
                          dark=dark)
-        print(self.data)
+#        print(self.data)
         
         
     def remove_ring(self, event):
@@ -1195,15 +1196,14 @@ class APS_13BM(wx.Frame):
         '''
         self.movie_index += 1
         nframes = self.data.shape[0]
-        print("Timer ! ", self.movie_index, nframes)
-
+#        print("Timer ! ", self.movie_index, nframes)
         if self.movie_index >= nframes-1:
             self.movie_timer.Stop()
             print("Stop timer")
             return
         self.movie_iframe.panel.update_image(self.data[self.movie_index, ::-1, :])
         
-        print("done show frame ", self.movie_index)
+#        print("done show frame ", self.movie_index)
         
     def movie_maker (self, event):
         '''
@@ -1221,8 +1221,9 @@ class APS_13BM(wx.Frame):
             self.movie_timer = wx.Timer(self)
             self.Bind(wx.EVT_TIMER, self.onMovieFrame)
             print("Start Movie Timer")
-            self.movie_timer.Start(25)
+            self.movie_timer.Start(0.5)
         del d_data
+        self.status_ID.SetLabel('Movie finished.')
 '''
 Mainloop of the GUI.
 '''
