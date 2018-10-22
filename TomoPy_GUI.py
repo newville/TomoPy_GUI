@@ -214,8 +214,11 @@ class APS_13BM(wx.Frame):
         self.z = self.z_dlg.GetValue()     
         plot_button = wx.Button(self.panel, -1, label ='Plot Image', size = (-1,-1))
         plot_button.Bind(wx.EVT_BUTTON, self.plotData)     
-        movie_button = wx.Button(self.panel, -1, label = 'Display Movie', size = (-1,-1))
-        movie_button.Bind(wx.EVT_BUTTON, self.movie_maker)
+        start_movie = wx.Button(self.panel, -1, label = 'Display Movie', size = (-1,-1))
+        start_movie.Bind(wx.EVT_BUTTON, self.movie_maker)
+        
+        stop_movie = wx.Button(self.panel, -1, label = 'Stop Movie', size = (-1,-1))
+        stop_movie.Bind(wx.EVT_BUTTON, self.onStop)
         
         ## Initializes post processing filter choices. These are not automatically applied.
         pp_label = wx.StaticText(self.panel, label = "Post Processing")  #needs to be on own Sizer.
@@ -296,6 +299,7 @@ class APS_13BM(wx.Frame):
         viz_box_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         slice_view_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         plotting_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        movie_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         pp_label_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         pp_filter_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         save_recon_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -373,8 +377,8 @@ class APS_13BM(wx.Frame):
         slice_view_Sizer.Add(self.z_lble, wx.ALL|wx.EXPAND, 5)
         slice_view_Sizer.Add(self.z_dlg, wx.ALL|wx.EXPAND, 5)
         plotting_Sizer.Add(plot_button, wx.ALL|wx.EXPAND, 5)
-        plotting_Sizer.Add(movie_button, wx.ALL|wx.EXPAND, 5)
-        
+        movie_Sizer.Add(start_movie, wx.ALL|wx.EXPAND, 5)
+        movie_Sizer.Add(stop_movie, wx.ALL|wx.EXPAND, 5)
         ## Post processing filters panel.
         pp_label_Sizer.Add(pp_label, wx.ALL|wx.EXPAND, 5)
         pp_filter_Sizer.Add(pp_filter_label, wx.ALL|wx.EXPAND, 5)
@@ -427,6 +431,7 @@ class APS_13BM(wx.Frame):
         rightSizer.Add(viz_box_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(slice_view_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(plotting_Sizer, 0, wx.ALL|wx.EXPAND, 5)
+        rightSizer.Add(movie_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(pp_label_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(pp_filter_Sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -1199,6 +1204,7 @@ class APS_13BM(wx.Frame):
 #        print("Timer ! ", self.movie_index, nframes)
         if self.movie_index >= nframes-1:
             self.movie_timer.Stop()
+            del d_data
             print("Stop timer")
             return
         self.movie_iframe.panel.update_image(self.data[self.movie_index, ::-1, :])
@@ -1221,9 +1227,14 @@ class APS_13BM(wx.Frame):
             self.movie_timer = wx.Timer(self)
             self.Bind(wx.EVT_TIMER, self.onMovieFrame)
             print("Start Movie Timer")
-            self.movie_timer.Start(0.5)
-        del d_data
+            self.movie_timer.Start(25)
+            del d_data
+        
         self.status_ID.SetLabel('Movie finished.')
+        
+    def onStop(self, event = None):
+        self.movie_timer.Stop()
+        del d_data
 '''
 Mainloop of the GUI.
 '''
