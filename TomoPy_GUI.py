@@ -245,11 +245,11 @@ class APS_13BM(wx.Frame):
         self.pp_filter_button.Bind(wx.EVT_BUTTON, self.filter_pp_data)
 
         ## Initializes data export choices.
-        self.save_dtype = 'i2'
+        self.save_dtype = 'f4'
         self.save_dtype_list = [
                 '8 bit unsigned', #u1
                 '16 bit signed', #i2
-                '16 bit unsigned',
+                '16 bit unsigned', #u2
                 '32 bit float'#f4
                 ]    
         self.save_dtype_menu = wx.ComboBox(self.panel, value = '32 bit float', choices = self.save_dtype_list)
