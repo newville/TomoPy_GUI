@@ -809,12 +809,10 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Rotation Center found.')
         print('success, rot center is ', self.rot_center)
         ## Updating the GUI for the calculated values. 
-        try:
-            self.est_rot_center_blank.SetValue(str(self.rot_center-self.npad))
-            self.upper_rot_center_blank.SetLabel(str((self.upper_rot_center-self.npad)))
-            self.lower_rot_center_blank.SetLabel(str((self.lower_rot_center-self.npad)))
-        except:
-            self.status_ID.SetLabel('Select No Padding and re-run Centering.')
+        self.est_rot_center_blank.SetValue(str(self.rot_center-self.npad))
+        self.upper_rot_center_blank.SetLabel(str((self.upper_rot_center-self.npad)))
+        self.lower_rot_center_blank.SetLabel(str((self.lower_rot_center-self.npad)))
+
 
     def find_center_algo_type (self, event):
         '''
@@ -905,7 +903,7 @@ class APS_13BM(wx.Frame):
         ## Need to add padding to center if padded.
         if self.npad != 0:
             upper_rot_center = float(upper_rot_center+self.npad)
-            lower_rot_center = float(lower_rot_center+self.napd)
+            lower_rot_center = float(lower_rot_center+self.npad)
         center_slope = (lower_rot_center - upper_rot_center) / float(self.data.shape[0])
         center_array = upper_rot_center + (np.arange(self.data.shape[0])*center_slope)
 #        center_array = float(self.est_rot_center_blank.GetValue())
