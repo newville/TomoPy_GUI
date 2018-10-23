@@ -1,6 +1,6 @@
 '''
-TomoPy GUI version designed for APS 13BM.
-Code written by B.M. Gibson and Matt Newville.
+TomoPy UI version designed for APS 13BM.
+User interface written by B.M. Gibson and Matt Newville.
 Version 1.0 (October 9, 2018)
 
 Updates:
@@ -17,6 +17,7 @@ Updates:
         - Movie start and stop button
         - Fixed a bug in reading in data from folder with multiple datasets
         - Allow user to turn off normalizing to background air
+        - Allow user to upconvert raw data to float32 and save
 
 '''
 ## Importing packages.
@@ -124,20 +125,20 @@ class APS_13BM(wx.Frame):
         ## Initialization of labels, blanks, and buttons for single slice reconstruction. 
         centering_label = wx.StaticText(self.panel, -1, label = 'Centering Parameters', size = (-1,-1))
         upper_slice_label = wx.StaticText(self.panel, -1, label = 'Upper slice:', size = (-1,-1))
-        self.upper_rot_slice_blank = wx.TextCtrl(self.panel, value = '300')
-        self.upper_rot_center_blank = wx.TextCtrl(self.panel, value = '960.00')
+        self.upper_rot_slice_blank = wx.TextCtrl(self.panel, value = '')
+        self.upper_rot_center_blank = wx.TextCtrl(self.panel, value = '')
         upper_slice_recon_button = wx.Button(self.panel, -1, label = 'Reconstruct Slice', size = (-1,-1))
         upper_slice_recon_button.Bind(wx.EVT_BUTTON, self.up_recon_slice)
         lower_slice_label = wx.StaticText(self.panel, -1, label = 'Lower Slice:', size = (-1,-1))
-        self.lower_rot_slice_blank = wx.TextCtrl(self.panel, value = '800')
-        self.lower_rot_center_blank = wx.TextCtrl(self.panel, value = '960.00')
+        self.lower_rot_slice_blank = wx.TextCtrl(self.panel, value = '')
+        self.lower_rot_center_blank = wx.TextCtrl(self.panel, value = '')
         lower_slice_recon_button = wx.Button(self.panel, -1, label = 'Reconstruct Slice', size = (-1,-1))
         lower_slice_recon_button.Bind(wx.EVT_BUTTON, self.lower_recon_slice)
         
         ## Initialization of centering parameters. 
         rot_center_title = wx.StaticText(self.panel, -1, label = ' Rotation Center:', size = (-1,-1))
         center_method_title = wx.StaticText(self.panel, -1, label = 'Centering Method:', size = (-1,-1))
-        self.est_rot_center_blank = wx.TextCtrl(self.panel, value = '960.00')   
+        self.est_rot_center_blank = wx.TextCtrl(self.panel, value = '')   
         self.find_center_type = 'Vghia Vo'
         find_center_list = [
                 'Entropy',
@@ -199,7 +200,6 @@ class APS_13BM(wx.Frame):
         recon_button.Bind(wx.EVT_BUTTON, self.reconstruct)
         ring_remove_button = wx.Button(self.panel, -1, label = ' Remove Ring ', size = (-1,-1))
         ring_remove_button.Bind(wx.EVT_BUTTON, self.remove_ring)
-       
         
         '''
         Top Right (Visualize) Panel
@@ -242,13 +242,13 @@ class APS_13BM(wx.Frame):
         self.pp_filter_menu.Bind(wx.EVT_COMBOBOX, self.OnppFilterCombo)
         self.pp_filter_button = wx.Button(self.panel, -1, label = 'Filter', size = (-1,-1))
         self.pp_filter_button.Bind(wx.EVT_BUTTON, self.filter_pp_data)
-
+        
         ## Initializes data export choices.
-        self.save_dtype = 'i2'
+        self.save_dtype = 'f4'
         self.save_dtype_list = [
                 '8 bit unsigned', #u1
                 '16 bit signed', #i2
-                '16 bit unsigned',
+                '16 bit unsigned', #u2
                 '32 bit float'#f4
                 ]    
         self.save_dtype_menu = wx.ComboBox(self.panel, value = '32 bit float', choices = self.save_dtype_list)
@@ -302,7 +302,7 @@ class APS_13BM(wx.Frame):
         recon_filter_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         recon_button_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         ring_removal_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         ## Creating Sizers for the right column.
         dim_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         dim_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -320,7 +320,6 @@ class APS_13BM(wx.Frame):
         '''
         ## Adding title to topSizer
         leftSizer.Add(title_label, 1, wx.ALL|wx.EXPAND, 5)
-        
         ## Adding to info panel.
         info_fname_Sizer.Add(file_label, 0, wx.ALL|wx.EXPAND, 5)
         info_fname_Sizer.Add(self.file_ID, wx.ALL|wx.EXPAND, 5)
@@ -328,7 +327,6 @@ class APS_13BM(wx.Frame):
         info_path_Sizer.Add(self.path_ID, 0, wx.ALL|wx.EXPAND, 5)
         info_status_Sizer.Add(status_label, 0, wx.ALL|wx.EXPAND, 5)
         info_status_Sizer.Add(self.status_ID, 0, wx.ALL|wx.EXPAND, 5)
-        
         ## Adding to Preprocessing panel.
         preprocessing_title_Sizer.Add(preprocess_label, wx.ALL, 5)
         preprocessing_panel_Sizer.Add(dark_label, wx.ALL, 5)
@@ -337,7 +335,6 @@ class APS_13BM(wx.Frame):
         preprocessing_title_Sizer.Add(self.bg_cb, wx.ALL, 5)
         preprocessing_zinger_Sizer.Add(zinger_button, wx.ALL, 5)
         preprocessing_zinger_Sizer.Add(preprocess_button, wx.ALL, 5)
-        
         ## Adding to centering panel.
         centering_title_Sizer.Add(centering_label, 0, wx.ALL, 5)
         recon_upper_center_Sizer.Add(upper_slice_label, 0, wx.ALL, 5)
@@ -348,7 +345,6 @@ class APS_13BM(wx.Frame):
         recon_lower_center_Sizer.Add(self.lower_rot_slice_blank, 0, wx.ALL, 5)
         recon_lower_center_Sizer.Add(self.lower_rot_center_blank, 0, wx.ALL, 5)
         recon_lower_center_Sizer.Add(lower_slice_recon_button, 0, wx.ALL, 5)
-            
         centering_method_Sizer.Add(center_method_title, 0, wx.ALL, 5)
         centering_method_Sizer.Add(self.find_center_menu, wx.ALL, 5)
         centering_method_Sizer.Add(tol_title, wx.ALL,5)
@@ -356,7 +352,6 @@ class APS_13BM(wx.Frame):
         centering_button_Sizer.Add(rot_center_title, 0, wx.ALL, 10)
         centering_button_Sizer.Add(self.est_rot_center_blank, wx.ALL, 5)
         centering_button_Sizer.Add(rot_center_button, 0, wx.ALL, 5)
-        
         ## Adding to reconstruction panel.
         recon_algo_title_Sizer.Add(recon_algo_title, 0, wx.ALL, 5)
         recon_algo_Sizer.Add(recon_type_label, 0, wx.ALL, 5)
@@ -365,9 +360,7 @@ class APS_13BM(wx.Frame):
         recon_algo_Sizer.Add(self.filter_menu, 0, wx.ALL, 5)
         recon_button_Sizer.Add(tilt_button, 0, wx.ALL, 5)
         recon_button_Sizer.Add(recon_button, 0, wx.ALL, 5)
-        recon_button_Sizer.Add(ring_remove_button, 0, wx.ALL, 5)
-
-        
+        recon_button_Sizer.Add(ring_remove_button, 0, wx.ALL, 5)    
         
         '''
         Adding all widgets to the RIGHT Sizer.
@@ -380,10 +373,8 @@ class APS_13BM(wx.Frame):
         dim_Sizer.Add(self.sy_ID, wx.ALL|wx.EXPAND, 5)
         dim_Sizer.Add(sz_label, wx.ALL|wx.EXPAND, 5)
         dim_Sizer.Add(self.sz_ID, wx.ALL|wx.EXPAND, 5)
-        
         ## Data visualization panel.
         viz_box_Sizer.Add(self.visualization_box, wx.ALL|wx.EXPAND, 5)
-        
         ## Slice and plotting panel.
         slice_view_Sizer.Add(self.z_lble, wx.ALL|wx.EXPAND, 5)
         slice_view_Sizer.Add(self.z_dlg, wx.ALL|wx.EXPAND, 5)
@@ -394,13 +385,11 @@ class APS_13BM(wx.Frame):
         pp_label_Sizer.Add(pp_label, wx.ALL|wx.EXPAND, 5)
         pp_filter_Sizer.Add(pp_filter_label, wx.ALL|wx.EXPAND, 5)
         pp_filter_Sizer.Add(self.pp_filter_menu, wx.ALL|wx.EXPAND, 5)
-        pp_filter_Sizer.Add(self.pp_filter_button, wx.ALL|wx.EXPAND, 5)
-        
+        pp_filter_Sizer.Add(self.pp_filter_button, wx.ALL|wx.EXPAND, 5)     
         ## Data export panel.
         save_recon_Sizer.Add(self.save_dtype_menu, wx.ALL|wx.EXPAND,5)
         save_recon_Sizer.Add(self.save_data_type_menu, wx.ALL|wx.EXPAND, 5)
-        save_recon_Sizer.Add(save_recon_button, wx.ALL|wx.EXPAND, 5)
-        
+        save_recon_Sizer.Add(save_recon_button, wx.ALL|wx.EXPAND, 5)    
         ## Computation Options panel
         comp_opt_title_Sizer.Add(comp_opt_title, wx.ALL|wx.EXPAND, 5)
         comp_opt_cores_n_chunks_Sizer.Add(ncores_label, wx.ALL|wx.EXPAND, 5)
@@ -460,8 +449,6 @@ class APS_13BM(wx.Frame):
         windowSizer.Add(rightSizer, 0, wx.ALL|wx.EXPAND, 10)
         self.panel.SetSizer(windowSizer)
         windowSizer.Fit(self)
-        
-
         
     '''
     Methods called by widgets from above. Organized by location. 
@@ -523,6 +510,12 @@ class APS_13BM(wx.Frame):
                                          sy=self.sy, 
                                          sz=self.sz, 
                                          dark=self.dark)
+                        ## Updating the Centering Parameters Defaults for the dataset.
+                        self.est_rot_center_blank.SetValue(str(self.sx/2))
+                        self.upper_rot_slice_blank.SetValue(str(int(self.sz-(self.sz/4))))
+                        self.upper_rot_center_blank.SetValue(str(self.sx/2))
+                        self.lower_rot_slice_blank.SetValue(str(int(self.sz-3*(self.sz/4))))
+                        self.lower_rot_center_blank.SetValue(str(self.sx/2))
                         self.status_ID.SetLabel('Data Imported') 
                         ## Time stamping.
                         t1 = time.time()
@@ -552,8 +545,7 @@ class APS_13BM(wx.Frame):
                         total = t1-t0
                         print('Time reading in files ', total)            
             except IOError:
-                wx.LogError("Cannot open file '%s'." % newfile)
-       
+                wx.LogError("Cannot open file '%s'." % newfile)       
          
     def update_info(self, path=None, fname=None, sx=None, sy=None, sz=None, dark=None):
         '''
@@ -571,8 +563,7 @@ class APS_13BM(wx.Frame):
         if fname is not None:
             self.file_ID.SetLabel(fname) 
         if dark is not None:
-            self.dark_ID.SetLabel(str(self.dark))
-    
+            self.dark_ID.SetLabel(str(self.dark))    
 
     def change_dir(self, event):
         '''
@@ -594,8 +585,7 @@ class APS_13BM(wx.Frame):
         if len(path) > 0:
             self.path_ID.SetLabel(path)
             os.chdir(path)
-        print('new dir', os.getcwd)   
-    
+        print('new dir', os.getcwd)     
     
     def client_free_mem(self, event):
         '''
@@ -605,13 +595,11 @@ class APS_13BM(wx.Frame):
             return
         else:
             del self.data
-            del save_data
             self.path_ID.SetLabel('')
             self.file_ID.SetLabel('')
             self.status_ID.SetLabel('Memory Cleared')
             gc.collect()
             print('fname and path released')
-
 
     def OnExit(self, event):
         '''
@@ -621,10 +609,7 @@ class APS_13BM(wx.Frame):
             if self.plotframe != None:  self.plotframe.onExit()
         except:
             pass
-        self.Destroy() 
-   
-    
-    
+        self.Destroy()  
 
     '''
     The following section houses methods specific to widgets on the GUI.
@@ -639,13 +624,12 @@ class APS_13BM(wx.Frame):
             self.npad = int(0)
         else:
             self.pad_size = int(new_pad)
-        print('pad size changed to ',self.pad_size)
-    
 
     def onChecked(self, event = None):
         self.cb = event.GetEventObject()
         self.cb = self.cb.GetValue()
         print('Box checked ', self.cb)
+    
     def zinger_removal(self, event):
         '''
         Remove artifacts from raw data.
@@ -665,7 +649,6 @@ class APS_13BM(wx.Frame):
         t1 = time.time()
         print('artifacts removed: ', t1-t0)
         self.status_ID.SetLabel('Artifacts Removed.')
-    
 
     def normalization(self, event):
         '''
@@ -679,6 +662,8 @@ class APS_13BM(wx.Frame):
         self.flat = np.concatenate((self.flat1, self.flat2),axis=0)
         del self.flat1
         del self.flat2
+        self.data = self.data
+        self.flat = self.flat
         ## Only single value is collected for dark current from APS 13BM.
         ## Create array of same size for normalizing.
         self.dark = float(self.dark_ID.GetValue())
@@ -687,17 +672,14 @@ class APS_13BM(wx.Frame):
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
         ## First normalization using flats and dark current.
-        print('Prenormalization max and min: ', np.amax(self.data), np.amin(self.data))
         self.data = tp.normalize(self.data, 
                                  flat=self.flat, 
                                  dark=self.dark, 
                                  ncore = self.ncore)
-        print('tp.normalize max and min: ', np.amax(self.data), np.amin(self.data))
         ## Additional normalization using the 10 outter most air pixels.
         if self.cb == True:
             self.data = tp.normalize_bg(self.data,
                                         air = 10)
-            print('tp.normalize_bg max and min: ', np.amax(self.data), np.amin(self.data))
         ## Allows user to pad sinogram.
         if self.pad_size != 0:
             self.npad = 0
@@ -709,26 +691,21 @@ class APS_13BM(wx.Frame):
                 self.data = tp.misc.morph.pad(self.data, 
                                               axis = 2, 
                                               npad =self.npad, 
-                                              mode = 'edge')
-        
+                                              mode = 'edge')   
         ## Delete dark field array as we no longer need it.
         del self.dark
         ## Scale data for I0 as 0.
         tp.minus_log(self.data, out = self.data)
-        print('tp.minus_log max and min: ', np.amax(self.data), np.amin(self.data))
         self.data = tp.remove_nan(self.data, 
                                   val = 0.,
                                   ncore = self.ncore)
-        print('tp.remove_nan max and min: ', np.amax(self.data), np.amin(self.data))
         ## Set status update for user.
         self.status_ID.SetLabel('Preprocessing Complete')
         ## Timestamping.
         t1 = time.time()
         total = t1-t0
         print('data dimensions ',self.data.shape, type(self.data), self.data.dtype, 'min ', self.data.min(), 'max', self.data.max())
-        print(self.data)
-        print('Normalization time was ', total)
-    
+        print('Normalization time was ', total)   
 
     def up_recon_slice (self, event):
         '''
@@ -750,7 +727,6 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Slice Reconstructed.')
         self.plot_slice_data()
 
-
     def lower_recon_slice (self, event):
         '''
         Slice reconstruction methods. 
@@ -769,8 +745,7 @@ class APS_13BM(wx.Frame):
         t1 = time.time()
         print('Slice recon time ', t1-t0)
         self.status_ID.SetLabel('Slice Reconstructed.')
-        self.plot_slice_data()
-    
+        self.plot_slice_data()    
 
     def find_rot_center(self, event=None):
         '''
@@ -778,6 +753,7 @@ class APS_13BM(wx.Frame):
         average of those centers.
         '''
         self.status_ID.SetLabel('Centering')
+        print('Begin centering')
         ## Setting up timestamp.
         t0 = time.time()
         ## Tolerance used for TomoPy centering algorithms.
@@ -787,14 +763,18 @@ class APS_13BM(wx.Frame):
         upper_center = float(self.upper_rot_center_blank.GetValue())
         lower_center = float(self.lower_rot_center_blank.GetValue())   
         if self.find_center_type == 'Entropy':
-            self.upper_rot_center = tp.find_center(self.data[upper_slice:upper_slice+1,:,:], 
+            self.upper_rot_center = float(tp.find_center(self.data[upper_slice:upper_slice+1,:,:],
                                                    self.theta, 
+                                                   ind = upper_slice,
                                                    init=upper_center, 
-                                                   tol=tol)
-            self.lower_rot_center = tp.find_center(self.data[lower_slice:lower_slice+1,:,:],
+                                                   tol=tol,
+                                                   sinogram_order = False))
+            self.lower_rot_center = float(tp.find_center(self.data[lower_slice:lower_slice+1,:,:],
                                                    self.theta,
+                                                   ind = upper_slice,
                                                    init = lower_center,
-                                                   tol = tol)
+                                                   tol = tol,
+                                                   sinogram_order = False))
             self.rot_center = (self.upper_rot_center + self.lower_rot_center) / 2
         if self.find_center_type == '0-180':
             if upper_slice > self.data.shape[2]:
@@ -804,13 +784,14 @@ class APS_13BM(wx.Frame):
                 self.status_ID.SetLabel('Lower slice out of range.')
                 return
             upper_proj1 = self.data[upper_slice,:,:]
-            u_slice2 = (upper_slice + int(self.data.shape[0]/2))%self.data.shape[0]
+            ## This finds the slice at 180 from the input slice.
+            u_slice2 = (upper_slice + int(self.data.shape[0]/2)) % self.data.shape[0]
             upper_proj2 = self.data[u_slice2,:,:]
             self.upper_rot_center = tp.find_center_pc(upper_proj1, 
                                                       upper_proj2, 
                                                       tol = tol)
             lower_proj1 = self.data[lower_slice,:,:]
-            l_slice2 = (lower_slice + int(self.data.shape[0]/2))%self.data.shape[0]
+            l_slice2 = (lower_slice + int(self.data.shape[0]/2)) % self.data.shape[0]
             lower_proj2 = self.data[l_slice2,:,:]
             self.lower_rot_center = tp.find_center_pc(lower_proj1,
                                                       lower_proj2,
@@ -828,21 +809,16 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Rotation Center found.')
         print('success, rot center is ', self.rot_center)
         ## Updating the GUI for the calculated values. 
-        try:
-            self.est_rot_center_blank.SetValue(str(self.rot_center-self.npad))
-            self.upper_rot_center_blank.SetLabel(str((self.upper_rot_center-self.npad)))
-            self.lower_rot_center_blank.SetLabel(str((self.lower_rot_center-self.npad)))
-        except:
-            self.status_ID.SetLabel('Select No Padding and re-run Centering.')
-    
+        self.est_rot_center_blank.SetValue(str(self.rot_center-self.npad))
+        self.upper_rot_center_blank.SetLabel(str((self.upper_rot_center-self.npad)))
+        self.lower_rot_center_blank.SetLabel(str((self.lower_rot_center-self.npad)))
+
 
     def find_center_algo_type (self, event):
         '''
         Sets the user's choice for identifying center.
         '''
         self.find_center_type = self.find_center_menu.GetStringSelection()
-        print('Center algorithm is ', self.find_center_type)
-
 
     def OnReconCombo(self, event):
         '''
@@ -875,16 +851,13 @@ class APS_13BM(wx.Frame):
             self.recon_type = 'tv',
         if self.recon_type == 'Gradient Descent':
             self.recon_type = 'grad'
-        print('Recon algorithm is ', self.recon_type)
-        
+        print('Recon algorithm is ', self.recon_type)       
 
     def OnFilterCombo(self, event):
         '''
         Sets the reconstruction filter if adjusted from default.
         '''
-        self.filter_type = self.filter_menu.GetStringSelection()
-        print('Filter is ', self.filter_type)
-       
+        self.filter_type = self.filter_menu.GetStringSelection()      
 
     def tilt_correction(self, event):
         '''
@@ -911,8 +884,7 @@ class APS_13BM(wx.Frame):
         t1 = time.time()
         print('Time to tilt ', t1-t0)
         print('New dimnsions are ', self.data.shape, 'Data type is', type(self.data), 'dtype is ', self.data.dtype)
-        self.status_ID.SetLabel('Tilt Corrected')
-    
+        self.status_ID.SetLabel('Tilt Corrected')  
 
     def reconstruct(self, event):
         '''
@@ -924,29 +896,35 @@ class APS_13BM(wx.Frame):
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
-        try: 
-            print('original data dimensions are ', self.data.shape, type(self.data), self.data.dtype)
-            self.rot_center = float(self.est_rot_center_blank.GetValue())
-            ## Need to add padding to center if padded.
-            if self.npad != 0:
-                self.rot_center = float(self.rot_center)+self.npad
-            self.data = tp.recon(self.data, 
-                                 self.theta, 
-                                 center = self.rot_center, 
-                                 sinogram_order = False,
-                                 algorithm = self.recon_type, 
-                                 filter_name = self.filter_type,
-                                 ncore = self.ncore,
-                                 nchunk = self.nchunk)
-            self.data = tp.remove_nan(self.data)
-            print('made it through recon.', self.data.shape, type(self.data), self.data.dtype)        
-            self.status_ID.SetLabel('Reconstruction Complete')               
-        except:
-            '''
-            Runs if not normalized, so tripped for not having pad value.
-            '''
-            self.status_ID.SetLabel('Normalization not done, select no padding.')
-            return
+#        try: 
+        print('original data dimensions are ', self.data.shape, type(self.data), self.data.dtype)
+        upper_rot_center = float(self.upper_rot_center_blank.GetValue())
+        lower_rot_center = float(self.lower_rot_center_blank.GetValue())
+        ## Need to add padding to center if padded.
+        if self.npad != 0:
+            upper_rot_center = float(upper_rot_center+self.npad)
+            lower_rot_center = float(lower_rot_center+self.npad)
+        center_slope = (lower_rot_center - upper_rot_center) / float(self.data.shape[0])
+        center_array = upper_rot_center + (np.arange(self.data.shape[0])*center_slope)
+#        center_array = float(self.est_rot_center_blank.GetValue())
+        print('center array is ', center_array, 'mean is ', np.mean(center_array))
+        self.data = tp.recon(self.data, 
+                             self.theta, 
+                             center = center_array, 
+                             sinogram_order = False,
+                             algorithm = self.recon_type, 
+                             filter_name = self.filter_type,
+                             ncore = self.ncore,
+                             nchunk = self.nchunk)
+        self.data = tp.remove_nan(self.data)
+        print('made it through recon.', self.data.shape, type(self.data), self.data.dtype)        
+        self.status_ID.SetLabel('Reconstruction Complete')               
+#        except:
+#            '''
+#            Runs if not normalized, so tripped for not having pad value.
+#            '''
+#            self.status_ID.SetLabel('Normalization not done, select no padding.')
+#            return
         t1 = time.time()
         total = t1-t0
         print('Reconstruction time was ', total)
@@ -963,9 +941,7 @@ class APS_13BM(wx.Frame):
                          sx=self.sx, 
                          sy=self.sy, 
                          sz=self.sz, 
-                         dark=dark)
-#        print(self.data)
-        
+                         dark=dark)    
         
     def remove_ring(self, event):
         '''
@@ -985,7 +961,6 @@ class APS_13BM(wx.Frame):
         t1 = time.time()
         print('made it through ring removal.', t1-t0)
         self.status_ID.SetLabel('Ring removed.')
-        
 
     def OnRadiobox(self, event):
         '''
@@ -993,7 +968,6 @@ class APS_13BM(wx.Frame):
         '''    
         self.plot_type = self.visualization_box.GetStringSelection()
         print('Slice view from Radiobox is ', self.plot_type)          
-      
 
     def OnppFilterCombo(self, event):
         '''
@@ -1001,7 +975,6 @@ class APS_13BM(wx.Frame):
         '''
         self.pp_filter_type = self.pp_filter_menu.GetStringSelection()
         print('filter has been set ', self.pp_filter_type)
-        
 
     def filter_pp_data(self, event):
         '''
@@ -1023,7 +996,6 @@ class APS_13BM(wx.Frame):
             self.data = tp.misc.corr.sobel_filter(self.data)
             print('sobel done')
         self.status_ID.SetLabel('Data Filtered')
-        
 
     def OnSaveDtypeCombo (self, event):
         '''
@@ -1043,7 +1015,6 @@ class APS_13BM(wx.Frame):
         if self.save_dtype == '32 bit float':
             self.save_dtype = 'f4'
             print('data type changed to ', self.save_dtype)
-    
 
     def OnSaveDataTypeCombo(self, event):
         '''
@@ -1051,7 +1022,6 @@ class APS_13BM(wx.Frame):
         '''
         self.save_data_type = self.save_data_type_menu.GetStringSelection()
         print('Data export type is ', self.save_data_type)
-            
 
     def save_recon(self, event=None):
         '''
@@ -1063,26 +1033,22 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Saving')
         ## Setting up timestamp.
         t0 = time.time()
-        
         ## Quick check to see if user is trying to save in unsupported formats.
         ## Eventually need to change u2 when converting to i2 is supported.
         if self.save_data_type == '.vol' and (self.save_dtype == 'u1' or self.save_dtype == 'u2'):
             self.status_ID.SetLabel('netCDF3 does not support unsigned images')
             return
-        
         ## Setup copy of data to allow user to scale and save at different file
         ## types (e.g. 8 bit, 16 bit, etc.). Must check to see if data are padded.
         if self.npad == 0:
             save_data = self.data[:]
-        ## Saving based on padding and reconstruction.
+        ## Exporting data without padding.
         if self.npad != 0: #was padded.
             if self.data.shape [1] == self.data.shape[2]: #padded and reconstructed.
                 save_data = self.data[:,self.npad:self.data.shape[1]-self.npad,self.npad:self.data.shape[2]-self.npad]
             if self.data.shape[1] != self.data.shape[2]: #padded and NOT reconstructed.
                 save_data = self.data[:,:,self.npad:self.data.shape[2]-self.npad]
-
         print('starting data shape ', save_data.shape, 'type ', save_data.dtype, 'min', save_data.min(), 'max', save_data.max())
-        
         ## Scales the data appropriately.
         ## This is extremely slow from float32 to other formats.
         a = float(save_data.min())
@@ -1093,7 +1059,13 @@ class APS_13BM(wx.Frame):
         if self.save_dtype == 'u2':
             save_data = ((save_data - a) / b) * 65535.
             save_data = save_data.astype(np.uint16)
-        ## This second conditional allows raw data to pass without being converted.
+        ## This allows raw data to be saved as float32 if so desired.
+        if self.save_dtype == 'f4' and self.data.dtype=='int16':
+            print('converting int16 to float32')
+            save_data = ((save_data - a) / b)
+            save_data = save_data.astype(np.float32)
+            print('float32 data are shape ', save_data.shape, 'type ', save_data.dtype,'min', save_data.min(), 'max', save_data.max())
+        ## This allows processed data (float 32) be saved as signed integer (16 signed int) which is same as raw data.
         if self.save_dtype =='i2' and self.data.dtype=='float32':
             tt0 = time.time()
             save_data = ((save_data - a) / b)
@@ -1133,11 +1105,7 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Saving completed.')
         t1 = time.time()
         total = t1-t0
-        print('Time saving data ', total)
-    
-    
-    
-    
+        print('Time saving data ', total)  
     
     ''' 
     Plotting methods.
@@ -1148,8 +1116,7 @@ class APS_13BM(wx.Frame):
         '''
         if self.image_frame is None:
             self.image_frame = ImageFrame(self) 
-            self.image_frame.Show()
-      
+            self.image_frame.Show()   
         
     def plot_slice_data (self,event=None):
 
@@ -1170,7 +1137,6 @@ class APS_13BM(wx.Frame):
             image_frame.Raise()
         else:
             print("cannot figure out how to get data from plot_type ", self.plot_type)
-
 
     def plotData(self, event):
         '''
@@ -1222,14 +1188,11 @@ class APS_13BM(wx.Frame):
         '''
         self.movie_index += 1
         nframes = self.data.shape[0]
-#        print("Timer ! ", self.movie_index, nframes)
         if self.movie_index >= nframes-1:
             self.movie_timer.Stop()
             print("Stop timer")
             return
         self.movie_iframe.panel.update_image(self.data[self.movie_index, ::-1, :])
-        
-#        print("done show frame ", self.movie_index)
         
     def movie_maker (self, event):
         '''
@@ -1248,9 +1211,8 @@ class APS_13BM(wx.Frame):
             self.movie_timer = wx.Timer(self)
             self.Bind(wx.EVT_TIMER, self.onMovieFrame)
             print("Start Movie Timer")
-            self.movie_timer.Start(25)
+            self.movie_timer.Start()
             del d_data
-        
         self.status_ID.SetLabel('Movie finished.')
         
     def onStop(self, event = None):
