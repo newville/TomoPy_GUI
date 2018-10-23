@@ -1,5 +1,5 @@
 # TomoPy_GUI
-# Written by B.M.Gibson and Matt Newville.
+Written by B.M.Gibson and Matt Newville.
 A simple user interface for TomoPy.
 TomoPy can be found at https://github.com/tomopy/tomopy.
 Currently, GUI is optimized for APS 13BM datasets. Future iterations will expand to other data formats.
