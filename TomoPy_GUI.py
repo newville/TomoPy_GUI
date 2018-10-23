@@ -595,7 +595,6 @@ class APS_13BM(wx.Frame):
             return
         else:
             del self.data
-            del save_data
             self.path_ID.SetLabel('')
             self.file_ID.SetLabel('')
             self.status_ID.SetLabel('Memory Cleared')
@@ -663,6 +662,8 @@ class APS_13BM(wx.Frame):
         self.flat = np.concatenate((self.flat1, self.flat2),axis=0)
         del self.flat1
         del self.flat2
+        self.data = self.data
+        self.flat = self.flat
         ## Only single value is collected for dark current from APS 13BM.
         ## Create array of same size for normalizing.
         self.dark = float(self.dark_ID.GetValue())
@@ -907,7 +908,7 @@ class APS_13BM(wx.Frame):
             lower_rot_center = float(lower_rot_center+self.napd)
         center_slope = (lower_rot_center - upper_rot_center) / float(self.data.shape[0])
         center_array = upper_rot_center + (np.arange(self.data.shape[0])*center_slope)
-        center_array = float(self.est_rot_center_blank.GetValue())
+#        center_array = float(self.est_rot_center_blank.GetValue())
         print('center array is ', center_array, 'mean is ', np.mean(center_array))
         self.data = tp.recon(self.data, 
                              self.theta, 
@@ -1212,7 +1213,7 @@ class APS_13BM(wx.Frame):
             self.movie_timer = wx.Timer(self)
             self.Bind(wx.EVT_TIMER, self.onMovieFrame)
             print("Start Movie Timer")
-            self.movie_timer.Start(25)
+            self.movie_timer.Start()
             del d_data
         self.status_ID.SetLabel('Movie finished.')
         
