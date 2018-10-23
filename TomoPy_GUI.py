@@ -125,26 +125,26 @@ class APS_13BM(wx.Frame):
         ## Initialization of labels, blanks, and buttons for single slice reconstruction. 
         centering_label = wx.StaticText(self.panel, -1, label = 'Centering Parameters', size = (-1,-1))
         upper_slice_label = wx.StaticText(self.panel, -1, label = 'Upper slice:', size = (-1,-1))
-        self.upper_rot_slice_blank = wx.TextCtrl(self.panel, value = '300')
-        self.upper_rot_center_blank = wx.TextCtrl(self.panel, value = '960.00')
+        self.upper_rot_slice_blank = wx.TextCtrl(self.panel, value = '')
+        self.upper_rot_center_blank = wx.TextCtrl(self.panel, value = '')
         upper_slice_recon_button = wx.Button(self.panel, -1, label = 'Reconstruct Slice', size = (-1,-1))
         upper_slice_recon_button.Bind(wx.EVT_BUTTON, self.up_recon_slice)
         lower_slice_label = wx.StaticText(self.panel, -1, label = 'Lower Slice:', size = (-1,-1))
-        self.lower_rot_slice_blank = wx.TextCtrl(self.panel, value = '800')
-        self.lower_rot_center_blank = wx.TextCtrl(self.panel, value = '960.00')
+        self.lower_rot_slice_blank = wx.TextCtrl(self.panel, value = '')
+        self.lower_rot_center_blank = wx.TextCtrl(self.panel, value = '')
         lower_slice_recon_button = wx.Button(self.panel, -1, label = 'Reconstruct Slice', size = (-1,-1))
         lower_slice_recon_button.Bind(wx.EVT_BUTTON, self.lower_recon_slice)
         
         ## Initialization of centering parameters. 
         rot_center_title = wx.StaticText(self.panel, -1, label = ' Rotation Center:', size = (-1,-1))
         center_method_title = wx.StaticText(self.panel, -1, label = 'Centering Method:', size = (-1,-1))
-        self.est_rot_center_blank = wx.TextCtrl(self.panel, value = '960.00')   
-        self.find_center_type = 'Vghia Vo'
+        self.est_rot_center_blank = wx.TextCtrl(self.panel, value = '')   
+        self.find_center_type = 'Entropy'
         find_center_list = [
                 'Entropy',
 				'Vghia Vo',
                 '0-180']
-        self.find_center_menu = wx.ComboBox(self.panel, value = 'Vghia Vo', choices = find_center_list)
+        self.find_center_menu = wx.ComboBox(self.panel, value = 'Entropy', choices = find_center_list)
         self.find_center_menu.Bind(wx.EVT_COMBOBOX, self.find_center_algo_type)
         tol_title = wx.StaticText(self.panel, -1, label = '         Tolerance: ' )
         self.tol_blank = wx.TextCtrl(self.panel, value = '0.25')
@@ -524,6 +524,12 @@ class APS_13BM(wx.Frame):
                                          sy=self.sy, 
                                          sz=self.sz, 
                                          dark=self.dark)
+                        ## Updating the Centering Parameters Defaults for the dataset.
+                        self.est_rot_center_blank.SetValue(str(self.sx/2))
+                        self.upper_rot_slice_blank.SetValue(str(int(self.sz-(self.sz/4))))
+                        self.upper_rot_center_blank.SetValue(str(self.sx/2))
+                        self.lower_rot_slice_blank.SetValue(str(int(self.sz-3*(self.sz/4))))
+                        self.lower_rot_center_blank.SetValue(str(self.sx/2))
                         self.status_ID.SetLabel('Data Imported') 
                         ## Time stamping.
                         t1 = time.time()
@@ -779,6 +785,7 @@ class APS_13BM(wx.Frame):
         average of those centers.
         '''
         self.status_ID.SetLabel('Centering')
+        print('Begin centering')
         ## Setting up timestamp.
         t0 = time.time()
         ## Tolerance used for TomoPy centering algorithms.
@@ -788,14 +795,18 @@ class APS_13BM(wx.Frame):
         upper_center = float(self.upper_rot_center_blank.GetValue())
         lower_center = float(self.lower_rot_center_blank.GetValue())   
         if self.find_center_type == 'Entropy':
-            self.upper_rot_center = tp.find_center(self.data[upper_slice:upper_slice+1,:,:], 
+            self.upper_rot_center = float(tp.find_center(self.data[upper_slice:upper_slice+1,:,:],
                                                    self.theta, 
+                                                   ind = upper_slice,
                                                    init=upper_center, 
-                                                   tol=tol)
-            self.lower_rot_center = tp.find_center(self.data[lower_slice:lower_slice+1,:,:],
+                                                   tol=tol,
+                                                   sinogram_order = False))
+            self.lower_rot_center = float(tp.find_center(self.data[lower_slice:lower_slice+1,:,:],
                                                    self.theta,
+                                                   ind = upper_slice,
                                                    init = lower_center,
-                                                   tol = tol)
+                                                   tol = tol,
+                                                   sinogram_order = False))
             self.rot_center = (self.upper_rot_center + self.lower_rot_center) / 2
         if self.find_center_type == '0-180':
             if upper_slice > self.data.shape[2]:
@@ -805,13 +816,14 @@ class APS_13BM(wx.Frame):
                 self.status_ID.SetLabel('Lower slice out of range.')
                 return
             upper_proj1 = self.data[upper_slice,:,:]
-            u_slice2 = (upper_slice + int(self.data.shape[0]/2))%self.data.shape[0]
+            ## This finds the slice at 180 from the input slice.
+            u_slice2 = (upper_slice + int(self.data.shape[0]/2)) % self.data.shape[0]
             upper_proj2 = self.data[u_slice2,:,:]
             self.upper_rot_center = tp.find_center_pc(upper_proj1, 
                                                       upper_proj2, 
                                                       tol = tol)
             lower_proj1 = self.data[lower_slice,:,:]
-            l_slice2 = (lower_slice + int(self.data.shape[0]/2))%self.data.shape[0]
+            l_slice2 = (lower_slice + int(self.data.shape[0]/2)) % self.data.shape[0]
             lower_proj2 = self.data[l_slice2,:,:]
             self.lower_rot_center = tp.find_center_pc(lower_proj1,
                                                       lower_proj2,
@@ -925,29 +937,35 @@ class APS_13BM(wx.Frame):
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
-        try: 
-            print('original data dimensions are ', self.data.shape, type(self.data), self.data.dtype)
-            self.rot_center = float(self.est_rot_center_blank.GetValue())
-            ## Need to add padding to center if padded.
-            if self.npad != 0:
-                self.rot_center = float(self.rot_center)+self.npad
-            self.data = tp.recon(self.data, 
-                                 self.theta, 
-                                 center = self.rot_center, 
-                                 sinogram_order = False,
-                                 algorithm = self.recon_type, 
-                                 filter_name = self.filter_type,
-                                 ncore = self.ncore,
-                                 nchunk = self.nchunk)
-            self.data = tp.remove_nan(self.data)
-            print('made it through recon.', self.data.shape, type(self.data), self.data.dtype)        
-            self.status_ID.SetLabel('Reconstruction Complete')               
-        except:
-            '''
-            Runs if not normalized, so tripped for not having pad value.
-            '''
-            self.status_ID.SetLabel('Normalization not done, select no padding.')
-            return
+#        try: 
+        print('original data dimensions are ', self.data.shape, type(self.data), self.data.dtype)
+        upper_rot_center = float(self.upper_rot_center_blank.GetValue())
+        lower_rot_center = float(self.lower_rot_center_blank.GetValue())
+        ## Need to add padding to center if padded.
+        if self.npad != 0:
+            upper_rot_center = float(upper_rot_center+self.npad)
+            lower_rot_center = float(lower_rot_center+self.napd)
+        center_slope = (lower_rot_center - upper_rot_center) / float(self.data.shape[0])
+        center_array = upper_rot_center + (np.arange(self.data.shape[0])*center_slope)
+        center_array = float(self.est_rot_center_blank.GetValue())
+        print('center array is ', center_array, 'mean is ', np.mean(center_array))
+        self.data = tp.recon(self.data, 
+                             self.theta, 
+                             center = center_array, 
+                             sinogram_order = False,
+                             algorithm = self.recon_type, 
+                             filter_name = self.filter_type,
+                             ncore = self.ncore,
+                             nchunk = self.nchunk)
+        self.data = tp.remove_nan(self.data)
+        print('made it through recon.', self.data.shape, type(self.data), self.data.dtype)        
+        self.status_ID.SetLabel('Reconstruction Complete')               
+#        except:
+#            '''
+#            Runs if not normalized, so tripped for not having pad value.
+#            '''
+#            self.status_ID.SetLabel('Normalization not done, select no padding.')
+#            return
         t1 = time.time()
         total = t1-t0
         print('Reconstruction time was ', total)
