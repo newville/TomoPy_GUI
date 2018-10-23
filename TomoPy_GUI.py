@@ -13,6 +13,10 @@ Updates:
         - Allowed TomoPy to work in memory when possible and not duplicate arrays
     Version 1.0.3 (October 16, 2018) B.M.Gibson
         - Movie button
+    Version 1.0.4 (October 23, 2018) B.M.Gibson
+        - Movie start and stop button
+        - Fixed a bug in reading in data from folder with multiple datasets
+        - Allow user to turn off normalizing to background air
 
 '''
 ## Importing packages.
@@ -92,8 +96,6 @@ class APS_13BM(wx.Frame):
         preprocess_label = wx.StaticText(self.panel, -1, label = 'Preprocessing', size = (-1,-1))
         dark_label = wx.StaticText(self.panel, -1, label = 'Dark Current:', size = (-1,-1))
         self.dark_ID = wx.TextCtrl(self.panel, -1, value ='', size = (-1,-1))
-        preprocess_button = wx.Button(self.panel, -1, label ='Preprocess', size = (-1,-1))  # this is normalizing step.
-        preprocess_button.Bind(wx.EVT_BUTTON, self.normalization)
         pad_size_opt = [
                 'No Padding',
                 '1024',
@@ -106,8 +108,15 @@ class APS_13BM(wx.Frame):
         self.npad = 0
         self.pad_size_combo = wx.ComboBox(self.panel, value = 'Auto Pad', choices = pad_size_opt)
         self.pad_size_combo.Bind(wx.EVT_COMBOBOX, self.pad_size_combo_recall)
+        ## If value pixel value near edge is NOT air, need to turn off normalizing with those values.
+        self.cb = True
+        self.bg_cb = wx.CheckBox(self.panel, label = 'Background Air Noramlization', size = (-1,-1))
+        self.bg_cb.Bind(wx.EVT_CHECKBOX, self.onChecked)
+        self.bg_cb.SetValue(True)
         zinger_button = wx.Button(self.panel, -1, label = 'Remove Artifacts', size = (-1,-1))
         zinger_button.Bind(wx.EVT_BUTTON, self.zinger_removal)
+        preprocess_button = wx.Button(self.panel, -1, label ='Preprocess', size = (-1,-1))  # this is normalizing step.
+        preprocess_button.Bind(wx.EVT_BUTTON, self.normalization)
         
         '''
         Centering Panel
@@ -217,8 +226,9 @@ class APS_13BM(wx.Frame):
         start_movie = wx.Button(self.panel, -1, label = 'Display Movie', size = (-1,-1))
         start_movie.Bind(wx.EVT_BUTTON, self.movie_maker)
         
-        stop_movie = wx.Button(self.panel, -1, label = 'Stop Movie', size = (-1,-1))
-        stop_movie.Bind(wx.EVT_BUTTON, self.onStop)
+        self.stop_movie = wx.Button(self.panel, -1, label = 'End Movie', size = (-1,-1))
+        self.stop_movie.Bind(wx.EVT_BUTTON, self.onStop)
+        self.stop_movie.Disable()
         
         ## Initializes post processing filter choices. These are not automatically applied.
         pp_label = wx.StaticText(self.panel, label = "Post Processing")  #needs to be on own Sizer.
@@ -324,6 +334,7 @@ class APS_13BM(wx.Frame):
         preprocessing_panel_Sizer.Add(dark_label, wx.ALL, 5)
         preprocessing_panel_Sizer.Add(self.dark_ID, wx.ALL, 5)
         preprocessing_panel_Sizer.Add(self.pad_size_combo, wx.ALL, 5)
+        preprocessing_title_Sizer.Add(self.bg_cb, wx.ALL, 5)
         preprocessing_zinger_Sizer.Add(zinger_button, wx.ALL, 5)
         preprocessing_zinger_Sizer.Add(preprocess_button, wx.ALL, 5)
         
@@ -378,7 +389,7 @@ class APS_13BM(wx.Frame):
         slice_view_Sizer.Add(self.z_dlg, wx.ALL|wx.EXPAND, 5)
         plotting_Sizer.Add(plot_button, wx.ALL|wx.EXPAND, 5)
         movie_Sizer.Add(start_movie, wx.ALL|wx.EXPAND, 5)
-        movie_Sizer.Add(stop_movie, wx.ALL|wx.EXPAND, 5)
+        movie_Sizer.Add(self.stop_movie, wx.ALL|wx.EXPAND, 5)
         ## Post processing filters panel.
         pp_label_Sizer.Add(pp_label, wx.ALL|wx.EXPAND, 5)
         pp_filter_Sizer.Add(pp_filter_label, wx.ALL|wx.EXPAND, 5)
@@ -481,13 +492,13 @@ class APS_13BM(wx.Frame):
                         Reads in 2 flats (.nc), .setup, and data (.nc).
                         '''
                         ## Gather list of all .nc files sharing same fname string.
-                        fname = glob.glob("*[1-3].nc") 
+                        fname = glob.glob(_fname[0:-5]+"*[1-3].nc") 
                         ## Entries 1 and 3 of fname list are flat fields.
                         ## Read in second entry (fname[1]), which houses the data.
                         self.data = dx.exchange.read_aps_13bm(fname[1],format='netcdf4')
                         print('read in data', self.data.shape)
                         ## Read .setup file, convert lines to rows, identify dark current.
-                        setup = glob.glob("*.setup")
+                        setup = glob.glob(_fname[0:-5]+"*.setup")
                         setup = open(setup[0], 'r')
                         setup_data = setup.readlines()
                         result = {}
@@ -631,6 +642,10 @@ class APS_13BM(wx.Frame):
         print('pad size changed to ',self.pad_size)
     
 
+    def onChecked(self, event = None):
+        self.cb = event.GetEventObject()
+        self.cb = self.cb.GetValue()
+        print('Box checked ', self.cb)
     def zinger_removal(self, event):
         '''
         Remove artifacts from raw data.
@@ -672,18 +687,22 @@ class APS_13BM(wx.Frame):
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
         ## First normalization using flats and dark current.
+        print('Prenormalization max and min: ', np.amax(self.data), np.amin(self.data))
         self.data = tp.normalize(self.data, 
                                  flat=self.flat, 
                                  dark=self.dark, 
                                  ncore = self.ncore)
+        print('tp.normalize max and min: ', np.amax(self.data), np.amin(self.data))
         ## Additional normalization using the 10 outter most air pixels.
-        self.data = tp.normalize_bg(self.data,
-                                    air = 10)
+        if self.cb == True:
+            self.data = tp.normalize_bg(self.data,
+                                        air = 10)
+            print('tp.normalize_bg max and min: ', np.amax(self.data), np.amin(self.data))
         ## Allows user to pad sinogram.
         if self.pad_size != 0:
             self.npad = 0
             if int(self.pad_size) < self.data.shape[2]:
-                self.status_ID.SetLabel('Pad Size too small for dataset. No padding done.')
+                self.status_ID.SetLabel('Pad Size too small for dataset. Normalized but no padding.')
                 return
             else:
                 self.npad = int( (int(self.pad_size) - self.data.shape[2] ) / 2)
@@ -696,9 +715,11 @@ class APS_13BM(wx.Frame):
         del self.dark
         ## Scale data for I0 as 0.
         tp.minus_log(self.data, out = self.data)
+        print('tp.minus_log max and min: ', np.amax(self.data), np.amin(self.data))
         self.data = tp.remove_nan(self.data, 
                                   val = 0.,
                                   ncore = self.ncore)
+        print('tp.remove_nan max and min: ', np.amax(self.data), np.amin(self.data))
         ## Set status update for user.
         self.status_ID.SetLabel('Preprocessing Complete')
         ## Timestamping.
@@ -1215,6 +1236,7 @@ class APS_13BM(wx.Frame):
         Currently this is super slow. 
         '''
         self.status_ID.SetLabel('Movie started.')
+        self.stop_movie.Enable()
         self.movie_iframe = ImageFrame(self)
         d_data = self.data
         if d_data is not None:       
@@ -1233,6 +1255,8 @@ class APS_13BM(wx.Frame):
         
     def onStop(self, event = None):
         self.movie_timer.Stop()
+        self.stop_movie.Disable()
+        self.status_ID.SetLabel('Movie finished.')
 
 '''
 Mainloop of the GUI.
