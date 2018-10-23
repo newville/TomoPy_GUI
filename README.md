@@ -9,4 +9,4 @@ Known issues include:
 - Data exports can be slow due to data conversions before saving. 16 bit signed integer data is particularly slow, and signed data are required for netcdf3. Float32 export does export at a reasonable rate because no conversions occur after reconstruction.
 - Most reconstruction algorithms are inherently much slower than gridrec. Filtered Back Projection also waiting on TomoPy to update for a filter to be implemented.
 - Centering algorithm currently only finds the center at the two user specified slices, and then averages those for the reconstruction. Future update will interpolate center between those two slices and extrapolate further.
--
+- Single slice reconstruction with padded array and no background air normalization causes artifacts that are not apparent in full volume reconstruction.
