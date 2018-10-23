@@ -687,17 +687,14 @@ class APS_13BM(wx.Frame):
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
         ## First normalization using flats and dark current.
-        print('Prenormalization max and min: ', np.amax(self.data), np.amin(self.data))
         self.data = tp.normalize(self.data, 
                                  flat=self.flat, 
                                  dark=self.dark, 
                                  ncore = self.ncore)
-        print('tp.normalize max and min: ', np.amax(self.data), np.amin(self.data))
         ## Additional normalization using the 10 outter most air pixels.
         if self.cb == True:
             self.data = tp.normalize_bg(self.data,
                                         air = 10)
-            print('tp.normalize_bg max and min: ', np.amax(self.data), np.amin(self.data))
         ## Allows user to pad sinogram.
         if self.pad_size != 0:
             self.npad = 0
@@ -715,11 +712,9 @@ class APS_13BM(wx.Frame):
         del self.dark
         ## Scale data for I0 as 0.
         tp.minus_log(self.data, out = self.data)
-        print('tp.minus_log max and min: ', np.amax(self.data), np.amin(self.data))
         self.data = tp.remove_nan(self.data, 
                                   val = 0.,
                                   ncore = self.ncore)
-        print('tp.remove_nan max and min: ', np.amax(self.data), np.amin(self.data))
         ## Set status update for user.
         self.status_ID.SetLabel('Preprocessing Complete')
         ## Timestamping.
@@ -1222,14 +1217,12 @@ class APS_13BM(wx.Frame):
         '''
         self.movie_index += 1
         nframes = self.data.shape[0]
-#        print("Timer ! ", self.movie_index, nframes)
         if self.movie_index >= nframes-1:
             self.movie_timer.Stop()
             print("Stop timer")
             return
         self.movie_iframe.panel.update_image(self.data[self.movie_index, ::-1, :])
-        
-#        print("done show frame ", self.movie_index)
+
         
     def movie_maker (self, event):
         '''
