@@ -17,6 +17,7 @@ Updates:
         - Movie start and stop button
         - Fixed a bug in reading in data from folder with multiple datasets
         - Allow user to turn off normalizing to background air
+        - Allow user to upconvert raw data to float32 and save
 
 '''
 ## Importing packages.
@@ -1074,7 +1075,8 @@ class APS_13BM(wx.Frame):
         ## types (e.g. 8 bit, 16 bit, etc.). Must check to see if data are padded.
         if self.npad == 0:
             save_data = self.data[:]
-        ## Saving based on padding and reconstruction.
+        
+        ## Exporting data without padding.
         if self.npad != 0: #was padded.
             if self.data.shape [1] == self.data.shape[2]: #padded and reconstructed.
                 save_data = self.data[:,self.npad:self.data.shape[1]-self.npad,self.npad:self.data.shape[2]-self.npad]
@@ -1093,7 +1095,13 @@ class APS_13BM(wx.Frame):
         if self.save_dtype == 'u2':
             save_data = ((save_data - a) / b) * 65535.
             save_data = save_data.astype(np.uint16)
-        ## This second conditional allows raw data to pass without being converted.
+        ## This allows raw data to be saved as float32 if so desired.
+        if self.save_dtype == 'f4' and self.data.dtype=='int16':
+            print('converting int16 to float32')
+            save_data = ((save_data - a) / b)
+            save_data = save_data.astype(np.float32)
+            print('float32 data are shape ', save_data.shape, 'type ', save_data.dtype,'min', save_data.min(), 'max', save_data.max())
+        ## This allows processed data (float 32) be saved as signed integer (16 signed int).
         if self.save_dtype =='i2' and self.data.dtype=='float32':
             tt0 = time.time()
             save_data = ((save_data - a) / b)
