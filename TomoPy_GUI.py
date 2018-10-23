@@ -1204,7 +1204,6 @@ class APS_13BM(wx.Frame):
 #        print("Timer ! ", self.movie_index, nframes)
         if self.movie_index >= nframes-1:
             self.movie_timer.Stop()
-            del d_data
             print("Stop timer")
             return
         self.movie_iframe.panel.update_image(self.data[self.movie_index, ::-1, :])
@@ -1234,7 +1233,7 @@ class APS_13BM(wx.Frame):
         
     def onStop(self, event = None):
         self.movie_timer.Stop()
-        del d_data
+
 '''
 Mainloop of the GUI.
 '''
