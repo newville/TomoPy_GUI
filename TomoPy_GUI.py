@@ -139,12 +139,12 @@ class APS_13BM(wx.Frame):
         rot_center_title = wx.StaticText(self.panel, -1, label = ' Rotation Center:', size = (-1,-1))
         center_method_title = wx.StaticText(self.panel, -1, label = 'Centering Method:', size = (-1,-1))
         self.est_rot_center_blank = wx.TextCtrl(self.panel, value = '')   
-        self.find_center_type = 'Entropy'
+        self.find_center_type = 'Vghia Vo'
         find_center_list = [
                 'Entropy',
 				'Vghia Vo',
                 '0-180']
-        self.find_center_menu = wx.ComboBox(self.panel, value = 'Entropy', choices = find_center_list)
+        self.find_center_menu = wx.ComboBox(self.panel, value = 'Vghia Vo', choices = find_center_list)
         self.find_center_menu.Bind(wx.EVT_COMBOBOX, self.find_center_algo_type)
         tol_title = wx.StaticText(self.panel, -1, label = '         Tolerance: ' )
         self.tol_blank = wx.TextCtrl(self.panel, value = '0.25')
