@@ -97,7 +97,7 @@ class APS_13BM(wx.Frame):
         '''
         ## Making the buttons
         preprocess_label = wx.StaticText(self.panel, -1, label = 'Preprocessing', size = (-1,-1))
-        dark_label = wx.StaticText(self.panel, -1, label = 'Dark Current:', size = (-1,-1))
+        dark_label = wx.StaticText(self.panel, -1, label = 'Dark Current:', size = (100,-1))
         self.dark_ID = wx.TextCtrl(self.panel, -1, value ='', size = (-1,-1))
         pad_size_opt = [
                 'No Padding',
@@ -148,8 +148,8 @@ class APS_13BM(wx.Frame):
                 '0-180']
         self.find_center_menu = wx.ComboBox(self.panel, value = 'Vghia Vo', choices = find_center_list)
         self.find_center_menu.Bind(wx.EVT_COMBOBOX, self.find_center_algo_type)
-        tol_title = wx.StaticText(self.panel, -1, label = '         Tolerance: ' )
-        self.tol_blank = wx.TextCtrl(self.panel, value = '0.25')
+        tol_title = wx.StaticText(self.panel, -1, label = '       Tolerance: ')
+        self.tol_blank = wx.TextCtrl(self.panel, value = '0.25', size = (100,-1))
 
         
         '''
@@ -249,12 +249,12 @@ class APS_13BM(wx.Frame):
         
         
         ring_width_label = wx.StaticText(self.panel, label = 'Ring Width:')
-        self.ring_width_blank = wx.TextCtrl(self.panel, value = '30')
-        ring_angle_mimimum_label = wx.StaticText(self.panel, label = 'Artifact minimum angle: ')
-        self.ring_angle_minimum_blank = wx.TextCtrl(self.panel, value = '30')
+        self.ring_width_blank = wx.TextCtrl(self.panel, value = '30', size = (90,-1))
+        ring_angle_mimimum_label = wx.StaticText(self.panel, label = 'Ring Min Angle: ')
+        self.ring_angle_minimum_blank = wx.TextCtrl(self.panel, value = '30', size = (90,-1))
         rr_thresh_label = wx.StaticText(self.panel, label = 'Ring Removal Threshold: ')
-        self.rr_thresh_upper_blank = wx.TextCtrl(self.panel, value = 'Default Upper')
-        self.rr_thresh_lower_blank = wx.TextCtrl(self.panel, value = 'Default Lower')
+        self.rr_thresh_upper_blank = wx.TextCtrl(self.panel, value = 'Default Upper', size = (-1,-1))
+        self.rr_thresh_lower_blank = wx.TextCtrl(self.panel, value = 'Default Lower', size = (-1,-1))
         int_mode_list = [
                         'WRAP',
                         'REFLECT']
@@ -358,7 +358,7 @@ class APS_13BM(wx.Frame):
         info_status_Sizer.Add(self.status_ID, 0, wx.ALL|wx.EXPAND, 5)
         ## Adding to Preprocessing panel.
         preprocessing_title_Sizer.Add(preprocess_label, wx.ALL, 5)
-        preprocessing_panel_Sizer.Add(dark_label, wx.ALL, 5)
+        preprocessing_panel_Sizer.Add(dark_label, -1, wx.ALL, 5)
         preprocessing_panel_Sizer.Add(self.dark_ID, wx.ALL, 5)
         preprocessing_panel_Sizer.Add(self.pad_size_combo, wx.ALL, 5)
         preprocessing_title_Sizer.Add(self.bg_cb, wx.ALL, 5)
@@ -375,10 +375,10 @@ class APS_13BM(wx.Frame):
         recon_lower_center_Sizer.Add(self.lower_rot_slice_blank, 0, wx.ALL, 5)
         recon_lower_center_Sizer.Add(self.lower_rot_center_blank, 0, wx.ALL, 5)
         recon_lower_center_Sizer.Add(lower_slice_recon_button, 0, wx.ALL, 5)
-        centering_method_Sizer.Add(center_method_title, 0, wx.ALL, 5)
-        centering_method_Sizer.Add(self.find_center_menu, wx.ALL, 5)
-        centering_method_Sizer.Add(tol_title, wx.ALL,5)
-        centering_method_Sizer.Add(self.tol_blank, wx.ALL, 5)
+        centering_method_Sizer.Add(center_method_title, 0, wx.ALL|wx.ALIGN_CENTER, 5)
+        centering_method_Sizer.Add(self.find_center_menu, -1, wx.ALL, 5)
+        centering_method_Sizer.Add(tol_title, -1, wx.ALL|wx.ALIGN_CENTER,5)
+        centering_method_Sizer.Add(self.tol_blank, -1, wx.ALL, 5)
 
         ## Adding to reconstruction panel.
         recon_algo_title_Sizer.Add(recon_algo_title, 0, wx.ALL, 5)
@@ -415,11 +415,11 @@ class APS_13BM(wx.Frame):
         movie_Sizer.Add(self.stop_movie, wx.ALL|wx.EXPAND, 5)
         ## Post processing filters panel.
         pp_label_Sizer.Add(pp_label, wx.ALL|wx.EXPAND, 5)
-        ring_removal_Sizer1.Add(ring_width_label, -1,wx.ALL|wx.ALIGN_CENTER,5)
+        ring_removal_Sizer1.Add(ring_width_label, -1, wx.ALL|wx.ALIGN_CENTER,5)
         ring_removal_Sizer1.Add(self.ring_width_blank,-1, wx.ALL|wx.ALIGN_CENTER,5)
         ring_removal_Sizer1.Add(ring_angle_mimimum_label, wx.ALL, 5)
         ring_removal_Sizer1.Add(self.ring_angle_minimum_blank, -1, wx.ALL, 5)
-        ring_removal_Sizer1.Add(self.int_mode_menu, -1, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER,5)
+        ring_removal_Sizer1.Add(self.int_mode_menu, -1, wx.ALL|wx.EXPAND,5)
         ring_removal_Sizer2.Add(rr_thresh_label, wx.ALL, 5)
         ring_removal_Sizer2.Add(self.rr_thresh_upper_blank, wx.ALL, 5)
         ring_removal_Sizer2.Add(self.rr_thresh_lower_blank, wx.ALL, 5)
@@ -665,9 +665,19 @@ class APS_13BM(wx.Frame):
             pass
         self.Destroy()  
 
+
     '''
-    The following section houses methods specific to widgets on the GUI.
+    METHODS SPECIFIC TO WIDGETS ON UI.
     '''     
+    def onChecked(self, event = None):
+        '''
+        Allows user to not normalize to air at edge if sample takes up entire 
+        field of view.
+        '''
+        self.cb = event.GetEventObject()
+        self.cb = self.cb.GetValue()
+        print('Box checked ', self.cb)
+    
     def pad_size_combo_recall (self, event = None):
         '''
         Sets sinogram pad size if user adjusts from default.
@@ -678,11 +688,6 @@ class APS_13BM(wx.Frame):
             self.npad = int(0)
         else:
             self.pad_size = int(new_pad)
-
-    def onChecked(self, event = None):
-        self.cb = event.GetEventObject()
-        self.cb = self.cb.GetValue()
-        print('Box checked ', self.cb)
     
     def zinger_removal(self, event):
         '''
@@ -775,49 +780,6 @@ class APS_13BM(wx.Frame):
         print('data dimensions ',self.data.shape, type(self.data), self.data.dtype, 'min ', self.data.min(), 'max', self.data.max())
         print('Normalization time was ', total)   
 
-    def up_recon_slice (self, event):
-        '''
-        Slice reconstruction methods. 
-        '''
-        self.status_ID.SetLabel('Reconstructing slice.')
-        t0 = time.time()
-        self.upper_rot_center = float(self.upper_rot_center_blank.GetValue())
-        ## Remember to remove this before syncing.
-        if self.npad != 0:
-            upper_rot_center = float(self.upper_rot_center+self.npad)
-        start = int(self.upper_rot_slice_blank.GetValue())        
-        self.data_slice = self.data[:,start:start+1,:]
-        self.data_slice = tp.recon(self.data_slice,
-                                   self.theta,
-                                   center = upper_rot_center,
-                                   sinogram_order = False,
-                                   algorithm = self.recon_type,
-                                   )
-        t1 = time.time()
-        print('Slice recon time ', t1-t0)
-        self.status_ID.SetLabel('Slice Reconstructed.')
-        self.plot_slice_data()
-
-    def lower_recon_slice (self, event):
-        '''
-        Slice reconstruction methods. 
-        '''
-        self.status_ID.SetLabel('Reconstructing slice.')
-        t0 = time.time()
-        self.lower_rot_center = float(self.lower_rot_center_blank.GetValue())
-        start = int(self.lower_rot_slice_blank.GetValue())        
-        self.data_slice = self.data[:,start:start+1,:]
-        self.data_slice = tp.recon(self.data_slice,
-                                   self.theta,
-                                   center = self.lower_rot_center,
-                                   sinogram_order = False,
-                                   algorithm = self.recon_type,
-                                   )
-        t1 = time.time()
-        print('Slice recon time ', t1-t0)
-        self.status_ID.SetLabel('Slice Reconstructed.')
-        self.plot_slice_data()    
-
     def find_rot_center(self, event=None):
         '''
         Allows user to find rotation centers of two slices. Then displays the 
@@ -884,6 +846,48 @@ class APS_13BM(wx.Frame):
         self.upper_rot_center_blank.SetLabel(str((self.upper_rot_center-self.npad)))
         self.lower_rot_center_blank.SetLabel(str((self.lower_rot_center-self.npad)))
 
+    def up_recon_slice (self, event):
+        '''
+        Slice reconstruction methods. 
+        '''
+        self.status_ID.SetLabel('Reconstructing slice.')
+        t0 = time.time()
+        self.upper_rot_center = float(self.upper_rot_center_blank.GetValue())
+        ## Remember to remove this before syncing.
+        if self.npad != 0:
+            upper_rot_center = float(self.upper_rot_center+self.npad)
+        start = int(self.upper_rot_slice_blank.GetValue())        
+        self.data_slice = self.data[:,start:start+1,:]
+        self.data_slice = tp.recon(self.data_slice,
+                                   self.theta,
+                                   center = upper_rot_center,
+                                   sinogram_order = False,
+                                   algorithm = self.recon_type)
+        t1 = time.time()
+        print('Slice recon time ', t1-t0)
+        self.status_ID.SetLabel('Slice Reconstructed.')
+        self.plot_slice_data()
+
+    def lower_recon_slice (self, event):
+        '''
+        Slice reconstruction methods. 
+        '''
+        self.status_ID.SetLabel('Reconstructing slice.')
+        t0 = time.time()
+        self.lower_rot_center = float(self.lower_rot_center_blank.GetValue())
+        if self.npad != 0:
+            lower_rot_center = float(self.lower_rot_center+self.npad)
+        start = int(self.lower_rot_slice_blank.GetValue())        
+        self.data_slice = self.data[:,start:start+1,:]
+        self.data_slice = tp.recon(self.data_slice,
+                                   self.theta,
+                                   center = lower_rot_center,
+                                   sinogram_order = False,
+                                   algorithm = self.recon_type)
+        t1 = time.time()
+        print('Slice recon time ', t1-t0)
+        self.status_ID.SetLabel('Slice Reconstructed.')
+        self.plot_slice_data()    
 
     def find_center_algo_type (self, event):
         '''
@@ -967,17 +971,19 @@ class APS_13BM(wx.Frame):
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
-#        try: 
         print('original data dimensions are ', self.data.shape, type(self.data), self.data.dtype)
+        ## Get rotation centers
         upper_rot_center = float(self.upper_rot_center_blank.GetValue())
         lower_rot_center = float(self.lower_rot_center_blank.GetValue())
         ## Need to add padding to center if padded.
         if self.npad != 0:
             upper_rot_center = float(upper_rot_center+self.npad)
             lower_rot_center = float(lower_rot_center+self.npad)
+        ## Make array of centers to reduce artifacts during reconstruction.
         center_slope = (lower_rot_center - upper_rot_center) / float(self.data.shape[0])
         center_array = upper_rot_center + (np.arange(self.data.shape[0])*center_slope)
         print('center array is ', center_array, 'mean is ', np.mean(center_array))
+        ## Reconstruct the data.
         self.data = tp.recon(self.data, 
                              self.theta, 
                              center = center_array, 
@@ -989,12 +995,6 @@ class APS_13BM(wx.Frame):
         self.data = tp.remove_nan(self.data)
         print('made it through recon.', self.data.shape, type(self.data), self.data.dtype)        
         self.status_ID.SetLabel('Reconstruction Complete')               
-#        except:
-#            '''
-#            Runs if not normalized, so tripped for not having pad value.
-#            '''
-#            self.status_ID.SetLabel('Normalization not done, select no padding.')
-#            return
         t1 = time.time()
         total = t1-t0
         print('Reconstruction time was ', total)
