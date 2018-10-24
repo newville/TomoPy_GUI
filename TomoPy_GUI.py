@@ -16,7 +16,7 @@ Updates:
     Version 1.0.4 (October 23, 2018) B.M.Gibson
         - Movie start and stop button
         - Fixed a bug in reading in data from folder with multiple datasets
-        - Allow user to turn off normalizing to background air
+        - Allow user to turn off normalizing to edge air from background
         - Allow user to upconvert raw data to float32 and save
 
 '''
@@ -111,7 +111,7 @@ class APS_13BM(wx.Frame):
         self.pad_size_combo.Bind(wx.EVT_COMBOBOX, self.pad_size_combo_recall)
         ## If value pixel value near edge is NOT air, need to turn off normalizing with those values.
         self.cb = True
-        self.bg_cb = wx.CheckBox(self.panel, label = 'Background Air Noramlization', size = (-1,-1))
+        self.bg_cb = wx.CheckBox(self.panel, label = 'Additional Air Normalization', size = (-1,-1))
         self.bg_cb.Bind(wx.EVT_CHECKBOX, self.onChecked)
         self.bg_cb.SetValue(True)
         zinger_button = wx.Button(self.panel, -1, label = 'Remove Artifacts', size = (-1,-1))
