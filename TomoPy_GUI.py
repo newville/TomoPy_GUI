@@ -198,8 +198,7 @@ class APS_13BM(wx.Frame):
         tilt_button.Bind(wx.EVT_BUTTON, self.tilt_correction)
         recon_button = wx.Button(self.panel, -1, label = "Reconstruct", size = (-1,-1))
         recon_button.Bind(wx.EVT_BUTTON, self.reconstruct)
-        ring_remove_button = wx.Button(self.panel, -1, label = ' Remove Ring ', size = (-1,-1))
-        ring_remove_button.Bind(wx.EVT_BUTTON, self.remove_ring)
+
         
         '''
         Top Right (Visualize) Panel
@@ -242,6 +241,23 @@ class APS_13BM(wx.Frame):
         self.pp_filter_menu.Bind(wx.EVT_COMBOBOX, self.OnppFilterCombo)
         self.pp_filter_button = wx.Button(self.panel, -1, label = 'Filter', size = (-1,-1))
         self.pp_filter_button.Bind(wx.EVT_BUTTON, self.filter_pp_data)
+        
+        
+        ring_width_label = wx.StaticText(self.panel, label = 'Ring Width: ')
+        self.ring_width_blank = wx.TextCtrl(self.panel, value = '30')
+        ring_angle_mimimum_label = wx.StaticText(self.panel, label = '    Artifact minimum angle:  ')
+        self.ring_angle_minimum_blank = wx.TextCtrl(self.panel, value = '30')
+        rr_thresh_label = wx.StaticText(self.panel, label = 'Ring Removal Threshold Values: ')
+        self.rr_thresh_upper_blank = wx.TextCtrl(self.panel, value = 'Default Upper')
+        self.rr_thresh_lower_blank = wx.TextCtrl(self.panel, value = 'Default Lower')
+        int_mode_list = [
+                        'WRAP',
+                        'REFLECT']
+        self.int_mode = 'WRAP'
+        self.int_mode_menu = wx.ComboBox(self.panel, value = 'WRAP', choices = int_mode_list)
+        self.int_mode_menu.Bind(wx.EVT_COMBOBOX, self.OnIntModeBox)
+        ring_remove_button = wx.Button(self.panel, -1, label = ' Remove Ring ', size = (-1,-1))
+        ring_remove_button.Bind(wx.EVT_BUTTON, self.remove_ring)       
         
         ## Initializes data export choices.
         self.save_dtype = 'f4'
@@ -301,17 +317,23 @@ class APS_13BM(wx.Frame):
         recon_algo_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         recon_filter_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         recon_button_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ring_removal_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
 
         ## Creating Sizers for the right column.
         dim_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         dim_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         viz_box_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
         slice_view_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         plotting_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         movie_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
         pp_label_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ring_removal_Sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        ring_removal_Sizer2 = wx.BoxSizer(wx.HORIZONTAL)        
+        ring_removal_Sizer3 = wx.BoxSizer(wx.HORIZONTAL)
         pp_filter_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
         save_recon_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         comp_opt_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         comp_opt_cores_n_chunks_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -360,7 +382,7 @@ class APS_13BM(wx.Frame):
         recon_algo_Sizer.Add(self.filter_menu, 0, wx.ALL, 5)
         recon_button_Sizer.Add(tilt_button, 0, wx.ALL, 5)
         recon_button_Sizer.Add(recon_button, 0, wx.ALL, 5)
-        recon_button_Sizer.Add(ring_remove_button, 0, wx.ALL, 5)    
+  
         
         '''
         Adding all widgets to the RIGHT Sizer.
@@ -383,6 +405,15 @@ class APS_13BM(wx.Frame):
         movie_Sizer.Add(self.stop_movie, wx.ALL|wx.EXPAND, 5)
         ## Post processing filters panel.
         pp_label_Sizer.Add(pp_label, wx.ALL|wx.EXPAND, 5)
+        ring_removal_Sizer1.Add(ring_width_label, wx.ALL,5)
+        ring_removal_Sizer1.Add(self.ring_width_blank, wx.ALL,5)
+        ring_removal_Sizer1.Add(ring_angle_mimimum_label, wx.ALL, 5)
+        ring_removal_Sizer1.Add(self.ring_angle_minimum_blank, wx.ALL, 5)
+        ring_removal_Sizer2.Add(rr_thresh_label, wx.ALL, 5)
+        ring_removal_Sizer2.Add(self.rr_thresh_upper_blank, wx.ALL, 5)
+        ring_removal_Sizer2.Add(self.rr_thresh_lower_blank, wx.ALL, 5)
+        ring_removal_Sizer3.Add(self.int_mode_menu, wx.ALL|wx.EXPAND,5)
+        ring_removal_Sizer3.Add(ring_remove_button, wx.ALL|wx.EXPAND,5)
         pp_filter_Sizer.Add(pp_filter_label, wx.ALL|wx.EXPAND, 5)
         pp_filter_Sizer.Add(self.pp_filter_menu, wx.ALL|wx.EXPAND, 5)
         pp_filter_Sizer.Add(self.pp_filter_button, wx.ALL|wx.EXPAND, 5)     
@@ -421,8 +452,7 @@ class APS_13BM(wx.Frame):
         leftSizer.Add(recon_algo_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         leftSizer.Add(recon_filter_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         leftSizer.Add(recon_button_Sizer, 0, wx.ALL|wx.EXPAND, 5)
-        leftSizer.Add(ring_removal_Sizer, 0, wx.ALL|wx.EXPAND, 5)
-        
+                
         '''
         Adding to rightSizer.
         '''
@@ -434,6 +464,9 @@ class APS_13BM(wx.Frame):
         rightSizer.Add(movie_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(pp_label_Sizer, 0, wx.ALL|wx.EXPAND, 5)
+        rightSizer.Add(ring_removal_Sizer1, 0, wx.ALL|wx.EXPAND, 5)
+        rightSizer.Add(ring_removal_Sizer2, 0, wx.ALL|wx.EXPAND, 5)
+        rightSizer.Add(ring_removal_Sizer3, 0, wx.ALL|wx.EXPAND,5)
         rightSizer.Add(pp_filter_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(save_recon_Sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -943,6 +976,17 @@ class APS_13BM(wx.Frame):
                          sz=self.sz, 
                          dark=dark)    
         
+    def OnRadiobox(self, event):
+        '''
+        Adjusts what view the user wishes to see in plotting window.
+        '''    
+        self.plot_type = self.visualization_box.GetStringSelection()
+        print('Slice view from Radiobox is ', self.plot_type)          
+
+    def OnIntModeBox(self, event = None):
+            self.int_mode = self.int_mode_menu.GetStringSelection()
+            print('Int_mode is now ', self.int_mode)
+
     def remove_ring(self, event):
         '''
         Removes ring artifact from reconstructed data.
@@ -954,20 +998,26 @@ class APS_13BM(wx.Frame):
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
+        rwidth = int(self.ring_width_blank.GetValue())
+        thresh_max = float(self.rr_thresh_upper_blank.GetValue())
+        thresh_min = float(self.rr_thresh_lower_blank.GetValue())
+        if thresh_max > self.data.max() or thresh_min < self.data.min():
+            self.status_ID.SetLabel('Ring removal thresholds out of range.')
+            return
+        theta_min = float(self.ring_angle_minimum_blank.GetValue())
+        ## Remove Ring
         tp.remove_ring(self.data,
+                       thresh_max = thresh_max,
+                       thrsh_min= thresh_min,
+                       theta_min = theta_min,
+                       rwidth = rwidth,
+                       int_mode = self.int_mode,
                        ncore = self.ncore,
                        nchunk = self.nchunk,
                        out = self.data)
         t1 = time.time()
         print('made it through ring removal.', t1-t0)
         self.status_ID.SetLabel('Ring removed.')
-
-    def OnRadiobox(self, event):
-        '''
-        Adjusts what view the user wishes to see in plotting window.
-        '''    
-        self.plot_type = self.visualization_box.GetStringSelection()
-        print('Slice view from Radiobox is ', self.plot_type)          
 
     def OnppFilterCombo(self, event):
         '''
