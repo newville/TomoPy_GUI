@@ -715,12 +715,12 @@ class APS_13BM(wx.Frame):
         t0 = time.time()
         self.upper_rot_center = float(self.upper_rot_center_blank.GetValue())
         if self.npad != 0:
-            upper_rot_center = float(upper_rot_center+self.npad)
+            upper_rot_center = float(self.upper_rot_center+self.npad)
         start = int(self.upper_rot_slice_blank.GetValue())        
         self.data_slice = self.data[:,start:start+1,:]
         self.data_slice = tp.recon(self.data_slice,
                                    self.theta,
-                                   center = self.upper_rot_center,
+                                   center = upper_rot_center,
                                    sinogram_order = False,
                                    algorithm = self.recon_type,
                                    )
@@ -737,12 +737,12 @@ class APS_13BM(wx.Frame):
         t0 = time.time()
         self.lower_rot_center = float(self.lower_rot_center_blank.GetValue())
         if self.npad != 0:
-            upper_rot_center = float(upper_rot_center+self.npad)
+            lower_rot_center = float(self.lower_rot_center+self.npad)
         start = int(self.lower_rot_slice_blank.GetValue())        
         self.data_slice = self.data[:,start:start+1,:]
         self.data_slice = tp.recon(self.data_slice,
                                    self.theta,
-                                   center = self.lower_rot_center,
+                                   center = lower_rot_center,
                                    sinogram_order = False,
                                    algorithm = self.recon_type,
                                    )
