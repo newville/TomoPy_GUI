@@ -121,6 +121,7 @@ class APS_13BM(wx.Frame):
         preprocess_button = wx.Button(self.panel, -1, label ='Preprocess', size = (-1,-1))  # this is normalizing step.
         preprocess_button.Bind(wx.EVT_BUTTON, self.normalization)
         
+        
         '''
         Centering Panel
         '''
@@ -780,6 +781,53 @@ class APS_13BM(wx.Frame):
         print('data dimensions ',self.data.shape, type(self.data), self.data.dtype, 'min ', self.data.min(), 'max', self.data.max())
         print('Normalization time was ', total)   
 
+<<<<<<< HEAD
+=======
+    def up_recon_slice (self, event):
+        '''
+        Slice reconstruction methods. 
+        '''
+        self.status_ID.SetLabel('Reconstructing slice.')
+        t0 = time.time()
+        self.upper_rot_center = float(self.upper_rot_center_blank.GetValue())
+        if self.npad != 0:
+            upper_rot_center = float(self.upper_rot_center+self.npad)
+        start = int(self.upper_rot_slice_blank.GetValue())        
+        self.data_slice = self.data[:,start:start+1,:]
+        self.data_slice = tp.recon(self.data_slice,
+                                   self.theta,
+                                   center = upper_rot_center,
+                                   sinogram_order = False,
+                                   algorithm = self.recon_type,
+                                   )
+        t1 = time.time()
+        print('Slice recon time ', t1-t0)
+        self.status_ID.SetLabel('Slice Reconstructed.')
+        self.plot_slice_data()
+
+    def lower_recon_slice (self, event):
+        '''
+        Slice reconstruction methods. 
+        '''
+        self.status_ID.SetLabel('Reconstructing slice.')
+        t0 = time.time()
+        self.lower_rot_center = float(self.lower_rot_center_blank.GetValue())
+        if self.npad != 0:
+            lower_rot_center = float(self.lower_rot_center+self.npad)
+        start = int(self.lower_rot_slice_blank.GetValue())        
+        self.data_slice = self.data[:,start:start+1,:]
+        self.data_slice = tp.recon(self.data_slice,
+                                   self.theta,
+                                   center = lower_rot_center,
+                                   sinogram_order = False,
+                                   algorithm = self.recon_type,
+                                   )
+        t1 = time.time()
+        print('Slice recon time ', t1-t0)
+        self.status_ID.SetLabel('Slice Reconstructed.')
+        self.plot_slice_data()    
+
+>>>>>>> Centering-Interpolation
     def find_rot_center(self, event=None):
         '''
         Allows user to find rotation centers of two slices. Then displays the 
