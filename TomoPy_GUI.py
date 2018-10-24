@@ -18,6 +18,8 @@ Updates:
         - Fixed a bug in reading in data from folder with multiple datasets
         - Allow user to turn off normalizing to edge air from background
         - Allow user to upconvert raw data to float32 and save
+    Version 1.0.5 (October 24, 2018) B.M.Gibson
+        - Added intensities to data visualization area
 
 '''
 ## Importing packages.
@@ -211,7 +213,11 @@ class APS_13BM(wx.Frame):
         self.sx_ID = wx.StaticText(self.panel, label ='')
         self.sy_ID = wx.StaticText(self.panel, label ='')
         self.sz_ID = wx.StaticText(self.panel, label ='')
-        
+        intensity_max = wx.StaticText(self.panel, label = 'Max Intensity: ')
+        intensity_min = wx.StaticText(self.panel, label = 'Min Intesnity: ')
+        self.data_min_ID = wx.StaticText(self.panel, label = '          ')
+        self.data_max_ID = wx.StaticText(self.panel, label = '          ')
+
         ## Initializes data visualization parameters. Defaults to slice view.
         self.plot_type = 'Z Slice'
         plot_view_list = ['Z Slice','Y Sinogram', 'X Sinogram']
@@ -388,13 +394,17 @@ class APS_13BM(wx.Frame):
         Adding all widgets to the RIGHT Sizer.
         '''
         ## Dimensions panel
-        dim_title_Sizer.Add(dim_label, wx.ALL, 5)
-        dim_Sizer.Add(sx_label, wx.ALL|wx.EXPAND, 5)
-        dim_Sizer.Add(self.sx_ID, wx.ALL|wx.EXPAND, 5)
-        dim_Sizer.Add(sy_label, wx.ALL|wx.EXPAND, 5)
-        dim_Sizer.Add(self.sy_ID, wx.ALL|wx.EXPAND, 5)
-        dim_Sizer.Add(sz_label, wx.ALL|wx.EXPAND, 5)
-        dim_Sizer.Add(self.sz_ID, wx.ALL|wx.EXPAND, 5)
+        dim_title_Sizer.Add(dim_label, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(sx_label, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(self.sx_ID, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(sy_label, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(self.sy_ID, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(sz_label, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(self.sz_ID, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(intensity_max, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(self.data_max_ID, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(intensity_min, -1, wx.ALL|wx.EXPAND, 5)
+        dim_Sizer.Add(self.data_min_ID, -1, wx.ALL|wx.EXPAND, 5)
         ## Data visualization panel.
         viz_box_Sizer.Add(self.visualization_box, wx.ALL|wx.EXPAND, 5)
         ## Slice and plotting panel.
@@ -456,8 +466,8 @@ class APS_13BM(wx.Frame):
         '''
         Adding to rightSizer.
         '''
-        rightSizer.Add(dim_title_Sizer, 0, wx.ALL|wx.EXPAND, 5)
-        rightSizer.Add(dim_Sizer, 0, wx.ALL|wx.EXPAND,5)
+        rightSizer.Add(dim_title_Sizer, 0, wx.ALL, 5)
+        rightSizer.Add(dim_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(viz_box_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(slice_view_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(plotting_Sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -535,6 +545,8 @@ class APS_13BM(wx.Frame):
                         self.sx = self.data.shape[2]
                         self.sy = self.data.shape[1]
                         self.sz = self.data.shape[0]                        
+                        self.data_min = self.data.min()
+                        self.data_max = self.data.max()
                         ## Updating the GUI.
                         self._fname = _fname[0:-5]
                         self.update_info(path=_path, 
@@ -542,7 +554,9 @@ class APS_13BM(wx.Frame):
                                          sx=self.sx, 
                                          sy=self.sy, 
                                          sz=self.sz, 
-                                         dark=self.dark)
+                                         dark=self.dark,
+                                         data_max=self.data_max,
+                                         data_min=self.data_min)
                         ## Updating the Centering Parameters Defaults for the dataset.
                         self.est_rot_center_blank.SetValue(str(self.sx/2))
                         self.upper_rot_slice_blank.SetValue(str(int(self.sz-(self.sz/4))))
@@ -571,7 +585,9 @@ class APS_13BM(wx.Frame):
                         ## Updating the GUI.
                         self._fname = _fname[0:-5]
                         self.dark = 'NA'
-                        self.update_info(path=_path, fname=self._fname, sx=self.sx, sy=self.sy, sz=self.sz, dark=self.dark)
+                        self.data_min = self.data.min()
+                        self.data_max = self.data.max()
+                        self.update_info(path=_path, fname=self._fname, sx=self.sx, sy=self.sy, sz=self.sz, dark=self.dark, data_max=self.data_max, data_min=self.data_min)
                         self.status_ID.SetLabel('Data Imported')
                         ## Time stamping.
                         t1 = time.time()
@@ -580,7 +596,7 @@ class APS_13BM(wx.Frame):
             except IOError:
                 wx.LogError("Cannot open file '%s'." % newfile)       
          
-    def update_info(self, path=None, fname=None, sx=None, sy=None, sz=None, dark=None):
+    def update_info(self, path=None, fname=None, sx=None, sy=None, sz=None, dark=None, data_max=None, data_min=None):
         '''
         Updates GUI info when files are imported
         as well as when files are adjusted later.
@@ -596,8 +612,12 @@ class APS_13BM(wx.Frame):
         if fname is not None:
             self.file_ID.SetLabel(fname) 
         if dark is not None:
-            self.dark_ID.SetLabel(str(self.dark))    
-
+            self.dark_ID.SetLabel(str(self.dark))   
+        if data_max is not None:
+            self.data_max_ID.SetLabel(str(self.data_max))
+        if data_min is not None:
+            self.data_min_ID.SetLabel(str(self.data_min))
+            
     def change_dir(self, event):
         '''
         Allows user to change directory where files will be saved.
@@ -732,6 +752,20 @@ class APS_13BM(wx.Frame):
         self.data = tp.remove_nan(self.data, 
                                   val = 0.,
                                   ncore = self.ncore)
+        self.data_max = self.data.max()
+        self.data_min = self.data.min()
+        ## Updates GUI. Variables set to None don't update in self.update_info methods
+        path = None
+        dark = None
+        fname = None
+        self.update_info(path=path, 
+                         fname=fname, 
+                         sx=self.sx, 
+                         sy=self.sy, 
+                         sz=self.sz, 
+                         dark=dark,
+                         data_max=self.data_max,
+                         data_min=self.data_min)    
         ## Set status update for user.
         self.status_ID.SetLabel('Preprocessing Complete')
         ## Timestamping.
@@ -747,11 +781,14 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Reconstructing slice.')
         t0 = time.time()
         self.upper_rot_center = float(self.upper_rot_center_blank.GetValue())
+        ## Remember to remove this before syncing.
+        if self.npad != 0:
+            upper_rot_center = float(self.upper_rot_center+self.npad)
         start = int(self.upper_rot_slice_blank.GetValue())        
         self.data_slice = self.data[:,start:start+1,:]
         self.data_slice = tp.recon(self.data_slice,
                                    self.theta,
-                                   center = self.upper_rot_center,
+                                   center = upper_rot_center,
                                    sinogram_order = False,
                                    algorithm = self.recon_type,
                                    )
@@ -965,7 +1002,9 @@ class APS_13BM(wx.Frame):
         self.sx = self.data.shape[2]-2*self.npad
         self.sy = self.data.shape[1]-2*self.npad
         self.sz = self.data.shape[0]
-        ## Updates GUI. Variables set to None don't update in self.update_info method.
+        self.data_max = self.data.max()
+        self.data_min = self.data.min()
+        ## Updates GUI. Variables set to None don't update in self.update_info methods
         path = None
         dark = None
         fname = None
@@ -974,7 +1013,9 @@ class APS_13BM(wx.Frame):
                          sx=self.sx, 
                          sy=self.sy, 
                          sz=self.sz, 
-                         dark=dark)    
+                         dark=dark,
+                         data_max=self.data_max,
+                         data_min=self.data_min)    
         
     def OnRadiobox(self, event):
         '''
@@ -999,8 +1040,16 @@ class APS_13BM(wx.Frame):
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
         rwidth = int(self.ring_width_blank.GetValue())
-        thresh_max = float(self.rr_thresh_upper_blank.GetValue())
-        thresh_min = float(self.rr_thresh_lower_blank.GetValue())
+        thresh_max = self.rr_thresh_upper_blank.GetValue()
+        thresh_min = self.rr_thresh_lower_blank.GetValue()
+        
+        if thresh_max == 'Default Upper':
+            thresh_max = 300.
+        if thresh_min == 'Default Lower':
+            thresh_min = 100.
+        thresh_max = float(thresh_max)
+        thresh_min = float(thresh_min)
+        
         if thresh_max > self.data.max() or thresh_min < self.data.min():
             self.status_ID.SetLabel('Ring removal thresholds out of range.')
             return
