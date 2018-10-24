@@ -125,7 +125,7 @@ class APS_13BM(wx.Frame):
         Centering Panel
         '''
         ## Initialization of labels, blanks, and buttons for single slice reconstruction. 
-        centering_label = wx.StaticText(self.panel, -1, label = 'Centering Parameters', size = (-1,-1))
+        centering_label = wx.StaticText(self.panel, -1, label = 'Centering Parameters                                                                 ', size = (-1,-1))
         upper_slice_label = wx.StaticText(self.panel, -1, label = 'Upper slice:', size = (-1,-1))
         self.upper_rot_slice_blank = wx.TextCtrl(self.panel, value = '')
         self.upper_rot_center_blank = wx.TextCtrl(self.panel, value = '')
@@ -138,9 +138,9 @@ class APS_13BM(wx.Frame):
         lower_slice_recon_button.Bind(wx.EVT_BUTTON, self.lower_recon_slice)
         
         ## Initialization of centering parameters. 
-        rot_center_title = wx.StaticText(self.panel, -1, label = ' Rotation Center:', size = (-1,-1))
-        center_method_title = wx.StaticText(self.panel, -1, label = 'Centering Method:', size = (-1,-1))
-        self.est_rot_center_blank = wx.TextCtrl(self.panel, value = '')   
+        rot_center_button = wx.Button(self.panel, -1, label = 'Optimize Center', size = (-1,-1))
+        rot_center_button.Bind(wx.EVT_BUTTON, self.find_rot_center)        
+        center_method_title = wx.StaticText(self.panel, -1, label = 'Centering Method:', size = (-1,-1)) 
         self.find_center_type = 'Vghia Vo'
         find_center_list = [
                 'Entropy',
@@ -150,8 +150,7 @@ class APS_13BM(wx.Frame):
         self.find_center_menu.Bind(wx.EVT_COMBOBOX, self.find_center_algo_type)
         tol_title = wx.StaticText(self.panel, -1, label = '         Tolerance: ' )
         self.tol_blank = wx.TextCtrl(self.panel, value = '0.25')
-        rot_center_button = wx.Button(self.panel, -1, label = 'Optimize Center', size = (-1,-1))
-        rot_center_button.Bind(wx.EVT_BUTTON, self.find_rot_center)
+
         
         '''
         Reconstruction Panel
@@ -221,7 +220,7 @@ class APS_13BM(wx.Frame):
         ## Initializes data visualization parameters. Defaults to slice view.
         self.plot_type = 'Z Slice'
         plot_view_list = ['Z Slice','Y Sinogram', 'X Sinogram']
-        self.visualization_box = wx.RadioBox(self.panel, label = 'Data Visuzalization', choices = plot_view_list, style = wx.RA_SPECIFY_ROWS)
+        self.visualization_box = wx.RadioBox(self.panel, label = 'Data Visuzalization', choices = plot_view_list, style = wx.RA_SPECIFY_COLS)
         self.visualization_box.Bind(wx.EVT_RADIOBOX, self.OnRadiobox)
         self.z_lble = wx.StaticText(self.panel, label = 'Slice to view: ')
         self.z_dlg = wx.TextCtrl(self.panel, value = 'Enter Slice')
@@ -249,11 +248,11 @@ class APS_13BM(wx.Frame):
         self.pp_filter_button.Bind(wx.EVT_BUTTON, self.filter_pp_data)
         
         
-        ring_width_label = wx.StaticText(self.panel, label = 'Ring Width: ')
+        ring_width_label = wx.StaticText(self.panel, label = 'Ring Width:')
         self.ring_width_blank = wx.TextCtrl(self.panel, value = '30')
-        ring_angle_mimimum_label = wx.StaticText(self.panel, label = '    Artifact minimum angle:  ')
+        ring_angle_mimimum_label = wx.StaticText(self.panel, label = 'Artifact minimum angle: ')
         self.ring_angle_minimum_blank = wx.TextCtrl(self.panel, value = '30')
-        rr_thresh_label = wx.StaticText(self.panel, label = 'Ring Removal Threshold Values: ')
+        rr_thresh_label = wx.StaticText(self.panel, label = 'Ring Removal Threshold: ')
         self.rr_thresh_upper_blank = wx.TextCtrl(self.panel, value = 'Default Upper')
         self.rr_thresh_lower_blank = wx.TextCtrl(self.panel, value = 'Default Lower')
         int_mode_list = [
@@ -262,10 +261,11 @@ class APS_13BM(wx.Frame):
         self.int_mode = 'WRAP'
         self.int_mode_menu = wx.ComboBox(self.panel, value = 'WRAP', choices = int_mode_list)
         self.int_mode_menu.Bind(wx.EVT_COMBOBOX, self.OnIntModeBox)
-        ring_remove_button = wx.Button(self.panel, -1, label = ' Remove Ring ', size = (-1,-1))
+        ring_remove_button = wx.Button(self.panel, -1, label = 'Remove Ring', size = (-1,-1))
         ring_remove_button.Bind(wx.EVT_BUTTON, self.remove_ring)       
         
         ## Initializes data export choices.
+        save_title = wx.StaticText(self.panel, label = 'Export Data')
         self.save_dtype = 'f4'
         self.save_dtype_list = [
                 '8 bit unsigned', #u1
@@ -328,10 +328,10 @@ class APS_13BM(wx.Frame):
         ## Creating Sizers for the right column.
         dim_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         dim_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        data_int_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         viz_box_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         slice_view_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        plotting_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         movie_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         pp_label_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -340,6 +340,7 @@ class APS_13BM(wx.Frame):
         ring_removal_Sizer3 = wx.BoxSizer(wx.HORIZONTAL)
         pp_filter_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         
+        save_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         save_recon_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         comp_opt_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         comp_opt_cores_n_chunks_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -347,7 +348,7 @@ class APS_13BM(wx.Frame):
         Adding widgets to LEFT Sizer.
         '''
         ## Adding title to topSizer
-        leftSizer.Add(title_label, 1, wx.ALL|wx.EXPAND, 5)
+        leftSizer.Add(title_label, 0, wx.ALL|wx.EXPAND, 5)
         ## Adding to info panel.
         info_fname_Sizer.Add(file_label, 0, wx.ALL|wx.EXPAND, 5)
         info_fname_Sizer.Add(self.file_ID, wx.ALL|wx.EXPAND, 5)
@@ -365,6 +366,7 @@ class APS_13BM(wx.Frame):
         preprocessing_zinger_Sizer.Add(preprocess_button, wx.ALL, 5)
         ## Adding to centering panel.
         centering_title_Sizer.Add(centering_label, 0, wx.ALL, 5)
+        centering_title_Sizer.Add(rot_center_button, 0, wx.RIGHT|wx.EXPAND|wx.ALIGN_CENTER, 5)
         recon_upper_center_Sizer.Add(upper_slice_label, 0, wx.ALL, 5)
         recon_upper_center_Sizer.Add(self.upper_rot_slice_blank, 0, wx.ALL, 5)
         recon_upper_center_Sizer.Add(self.upper_rot_center_blank, 0, wx.ALL, 5)
@@ -377,9 +379,7 @@ class APS_13BM(wx.Frame):
         centering_method_Sizer.Add(self.find_center_menu, wx.ALL, 5)
         centering_method_Sizer.Add(tol_title, wx.ALL,5)
         centering_method_Sizer.Add(self.tol_blank, wx.ALL, 5)
-        centering_button_Sizer.Add(rot_center_title, 0, wx.ALL, 10)
-        centering_button_Sizer.Add(self.est_rot_center_blank, wx.ALL, 5)
-        centering_button_Sizer.Add(rot_center_button, 0, wx.ALL, 5)
+
         ## Adding to reconstruction panel.
         recon_algo_title_Sizer.Add(recon_algo_title, 0, wx.ALL, 5)
         recon_algo_Sizer.Add(recon_type_label, 0, wx.ALL, 5)
@@ -394,40 +394,41 @@ class APS_13BM(wx.Frame):
         Adding all widgets to the RIGHT Sizer.
         '''
         ## Dimensions panel
-        dim_title_Sizer.Add(dim_label, -1, wx.ALL|wx.EXPAND, 5)
+        dim_title_Sizer.Add(dim_label, 0, wx.ALL|wx.EXPAND, 5)
         dim_Sizer.Add(sx_label, -1, wx.ALL|wx.EXPAND, 5)
         dim_Sizer.Add(self.sx_ID, -1, wx.ALL|wx.EXPAND, 5)
         dim_Sizer.Add(sy_label, -1, wx.ALL|wx.EXPAND, 5)
         dim_Sizer.Add(self.sy_ID, -1, wx.ALL|wx.EXPAND, 5)
         dim_Sizer.Add(sz_label, -1, wx.ALL|wx.EXPAND, 5)
         dim_Sizer.Add(self.sz_ID, -1, wx.ALL|wx.EXPAND, 5)
-        dim_Sizer.Add(intensity_max, -1, wx.ALL|wx.EXPAND, 5)
-        dim_Sizer.Add(self.data_max_ID, -1, wx.ALL|wx.EXPAND, 5)
-        dim_Sizer.Add(intensity_min, -1, wx.ALL|wx.EXPAND, 5)
-        dim_Sizer.Add(self.data_min_ID, -1, wx.ALL|wx.EXPAND, 5)
+        data_int_Sizer.Add(intensity_max, -1, wx.ALL|wx.EXPAND, 5)
+        data_int_Sizer.Add(self.data_max_ID, -1, wx.ALL|wx.EXPAND, 5)
+        data_int_Sizer.Add(intensity_min, -1, wx.ALL|wx.EXPAND, 5)
+        data_int_Sizer.Add(self.data_min_ID, -1, wx.ALL|wx.EXPAND, 5)
         ## Data visualization panel.
         viz_box_Sizer.Add(self.visualization_box, wx.ALL|wx.EXPAND, 5)
         ## Slice and plotting panel.
-        slice_view_Sizer.Add(self.z_lble, wx.ALL|wx.EXPAND, 5)
-        slice_view_Sizer.Add(self.z_dlg, wx.ALL|wx.EXPAND, 5)
-        plotting_Sizer.Add(plot_button, wx.ALL|wx.EXPAND, 5)
+        slice_view_Sizer.Add(self.z_lble, -1, wx.ALL|wx.ALIGN_CENTER, 5)
+        slice_view_Sizer.Add(self.z_dlg, -1,wx.ALL|wx.EXPAND, 5)
+        slice_view_Sizer.Add(plot_button, wx.ALL|wx.EXPAND, 5)
         movie_Sizer.Add(start_movie, wx.ALL|wx.EXPAND, 5)
         movie_Sizer.Add(self.stop_movie, wx.ALL|wx.EXPAND, 5)
         ## Post processing filters panel.
         pp_label_Sizer.Add(pp_label, wx.ALL|wx.EXPAND, 5)
-        ring_removal_Sizer1.Add(ring_width_label, wx.ALL,5)
-        ring_removal_Sizer1.Add(self.ring_width_blank, wx.ALL,5)
+        ring_removal_Sizer1.Add(ring_width_label, -1,wx.ALL|wx.ALIGN_CENTER,5)
+        ring_removal_Sizer1.Add(self.ring_width_blank,-1, wx.ALL|wx.ALIGN_CENTER,5)
         ring_removal_Sizer1.Add(ring_angle_mimimum_label, wx.ALL, 5)
-        ring_removal_Sizer1.Add(self.ring_angle_minimum_blank, wx.ALL, 5)
+        ring_removal_Sizer1.Add(self.ring_angle_minimum_blank, -1, wx.ALL, 5)
+        ring_removal_Sizer1.Add(self.int_mode_menu, -1, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER,5)
         ring_removal_Sizer2.Add(rr_thresh_label, wx.ALL, 5)
         ring_removal_Sizer2.Add(self.rr_thresh_upper_blank, wx.ALL, 5)
         ring_removal_Sizer2.Add(self.rr_thresh_lower_blank, wx.ALL, 5)
-        ring_removal_Sizer3.Add(self.int_mode_menu, wx.ALL|wx.EXPAND,5)
-        ring_removal_Sizer3.Add(ring_remove_button, wx.ALL|wx.EXPAND,5)
-        pp_filter_Sizer.Add(pp_filter_label, wx.ALL|wx.EXPAND, 5)
+        ring_removal_Sizer2.Add(ring_remove_button, -1, wx.ALL,5)
+        pp_filter_Sizer.Add(pp_filter_label, -1, wx.ALL, 5)
         pp_filter_Sizer.Add(self.pp_filter_menu, wx.ALL|wx.EXPAND, 5)
         pp_filter_Sizer.Add(self.pp_filter_button, wx.ALL|wx.EXPAND, 5)     
         ## Data export panel.
+        save_title_Sizer.Add(save_title, wx.ALL|wx.EXPAND, 5)
         save_recon_Sizer.Add(self.save_dtype_menu, wx.ALL|wx.EXPAND,5)
         save_recon_Sizer.Add(self.save_data_type_menu, wx.ALL|wx.EXPAND, 5)
         save_recon_Sizer.Add(save_recon_button, wx.ALL|wx.EXPAND, 5)    
@@ -468,9 +469,9 @@ class APS_13BM(wx.Frame):
         '''
         rightSizer.Add(dim_title_Sizer, 0, wx.ALL, 5)
         rightSizer.Add(dim_Sizer, 0, wx.ALL|wx.EXPAND, 5)
+        rightSizer.Add(data_int_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(viz_box_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(slice_view_Sizer, 0, wx.ALL|wx.EXPAND, 5)
-        rightSizer.Add(plotting_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(movie_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(pp_label_Sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -479,6 +480,7 @@ class APS_13BM(wx.Frame):
         rightSizer.Add(ring_removal_Sizer3, 0, wx.ALL|wx.EXPAND,5)
         rightSizer.Add(pp_filter_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
+        rightSizer.Add(save_title_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(save_recon_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(comp_opt_title_Sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -558,7 +560,6 @@ class APS_13BM(wx.Frame):
                                          data_max=self.data_max,
                                          data_min=self.data_min)
                         ## Updating the Centering Parameters Defaults for the dataset.
-                        self.est_rot_center_blank.SetValue(str(self.sx/2))
                         self.upper_rot_slice_blank.SetValue(str(int(self.sz-(self.sz/4))))
                         self.upper_rot_center_blank.SetValue(str(self.sx/2))
                         self.lower_rot_slice_blank.SetValue(str(int(self.sz-3*(self.sz/4))))
@@ -879,7 +880,7 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Rotation Center found.')
         print('success, rot center is ', self.rot_center)
         ## Updating the GUI for the calculated values. 
-        self.est_rot_center_blank.SetValue(str(self.rot_center-self.npad))
+
         self.upper_rot_center_blank.SetLabel(str((self.upper_rot_center-self.npad)))
         self.lower_rot_center_blank.SetLabel(str((self.lower_rot_center-self.npad)))
 
@@ -976,7 +977,6 @@ class APS_13BM(wx.Frame):
             lower_rot_center = float(lower_rot_center+self.npad)
         center_slope = (lower_rot_center - upper_rot_center) / float(self.data.shape[0])
         center_array = upper_rot_center + (np.arange(self.data.shape[0])*center_slope)
-#        center_array = float(self.est_rot_center_blank.GetValue())
         print('center array is ', center_array, 'mean is ', np.mean(center_array))
         self.data = tp.recon(self.data, 
                              self.theta, 
