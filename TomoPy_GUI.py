@@ -959,7 +959,6 @@ class APS_13BM(wx.Frame):
         ## Make array of centers to reduce artifacts during reconstruction.
         center_slope = (lower_rot_center - upper_rot_center) / float(self.data.shape[0])
         center_array = upper_rot_center + (np.arange(self.data.shape[0])*center_slope)
-        print('center array is ', center_array, 'mean is ', np.mean(center_array))
         ## Reconstruct the data.
         self.data = tp.recon(self.data, 
                              self.theta, 
@@ -1011,7 +1010,7 @@ class APS_13BM(wx.Frame):
         Default values for now. Have opened a branch to develop this with 
         more options in the future.
         '''
-        self.status_ID.SetLabel('Removing Ring.')    
+        self.status_ID.SetLabel('Removing Ring Default Settings.')    
         ## Setting up timestamp.
         t0 = time.time()
         ## Pull user specified processing power.
