@@ -249,19 +249,19 @@ class APS_13BM(wx.Frame):
         self.pp_filter_button.Bind(wx.EVT_BUTTON, self.filter_pp_data)
         
         
-        ring_width_label = wx.StaticText(self.panel, label = 'Ring Width:')
-        self.ring_width_blank = wx.TextCtrl(self.panel, value = '30', size = (90,-1))
-        ring_angle_mimimum_label = wx.StaticText(self.panel, label = 'Ring Min Angle: ')
-        self.ring_angle_minimum_blank = wx.TextCtrl(self.panel, value = '30', size = (90,-1))
-        rr_thresh_label = wx.StaticText(self.panel, label = 'Ring Removal Threshold: ')
-        self.rr_thresh_upper_blank = wx.TextCtrl(self.panel, value = 'Default Upper', size = (-1,-1))
-        self.rr_thresh_lower_blank = wx.TextCtrl(self.panel, value = 'Default Lower', size = (-1,-1))
-        int_mode_list = [
-                        'WRAP',
-                        'REFLECT']
-        self.int_mode = 'WRAP'
-        self.int_mode_menu = wx.ComboBox(self.panel, value = 'WRAP', choices = int_mode_list)
-        self.int_mode_menu.Bind(wx.EVT_COMBOBOX, self.OnIntModeBox)
+#        ring_width_label = wx.StaticText(self.panel, label = 'Ring Width:')
+#        self.ring_width_blank = wx.TextCtrl(self.panel, value = '30', size = (90,-1))
+#        ring_angle_mimimum_label = wx.StaticText(self.panel, label = 'Ring Min Angle: ')
+#        self.ring_angle_minimum_blank = wx.TextCtrl(self.panel, value = '30', size = (90,-1))
+#        rr_thresh_label = wx.StaticText(self.panel, label = 'Ring Removal Threshold: ')
+#        self.rr_thresh_upper_blank = wx.TextCtrl(self.panel, value = 'Default Upper', size = (-1,-1))
+#        self.rr_thresh_lower_blank = wx.TextCtrl(self.panel, value = 'Default Lower', size = (-1,-1))
+#        int_mode_list = [
+#                        'WRAP',
+#                        'REFLECT']
+#        self.int_mode = 'WRAP'
+#        self.int_mode_menu = wx.ComboBox(self.panel, value = 'WRAP', choices = int_mode_list)
+#        self.int_mode_menu.Bind(wx.EVT_COMBOBOX, self.OnIntModeBox)
         ring_remove_button = wx.Button(self.panel, -1, label = 'Remove Ring', size = (-1,-1))
         ring_remove_button.Bind(wx.EVT_BUTTON, self.remove_ring)       
         
@@ -389,7 +389,7 @@ class APS_13BM(wx.Frame):
         recon_algo_Sizer.Add(self.filter_menu, 0, wx.ALL, 5)
         recon_button_Sizer.Add(tilt_button, 0, wx.ALL, 5)
         recon_button_Sizer.Add(recon_button, 0, wx.ALL, 5)
-  
+        recon_button_Sizer.Add(ring_remove_button, -1, wx.ALL,5)
         
         '''
         Adding all widgets to the RIGHT Sizer.
@@ -416,15 +416,15 @@ class APS_13BM(wx.Frame):
         movie_Sizer.Add(self.stop_movie, wx.ALL|wx.EXPAND, 5)
         ## Post processing filters panel.
         pp_label_Sizer.Add(pp_label, wx.ALL|wx.EXPAND, 5)
-        ring_removal_Sizer1.Add(ring_width_label, -1, wx.ALL|wx.ALIGN_CENTER,5)
-        ring_removal_Sizer1.Add(self.ring_width_blank,-1, wx.ALL|wx.ALIGN_CENTER,5)
-        ring_removal_Sizer1.Add(ring_angle_mimimum_label, wx.ALL, 5)
-        ring_removal_Sizer1.Add(self.ring_angle_minimum_blank, -1, wx.ALL, 5)
-        ring_removal_Sizer1.Add(self.int_mode_menu, -1, wx.ALL|wx.EXPAND,5)
-        ring_removal_Sizer2.Add(rr_thresh_label, wx.ALL, 5)
-        ring_removal_Sizer2.Add(self.rr_thresh_upper_blank, wx.ALL, 5)
-        ring_removal_Sizer2.Add(self.rr_thresh_lower_blank, wx.ALL, 5)
-        ring_removal_Sizer2.Add(ring_remove_button, -1, wx.ALL,5)
+#        ring_removal_Sizer1.Add(ring_width_label, -1, wx.ALL|wx.ALIGN_CENTER,5)
+#        ring_removal_Sizer1.Add(self.ring_width_blank,-1, wx.ALL|wx.ALIGN_CENTER,5)
+#        ring_removal_Sizer1.Add(ring_angle_mimimum_label, wx.ALL, 5)
+#        ring_removal_Sizer1.Add(self.ring_angle_minimum_blank, -1, wx.ALL, 5)
+#        ring_removal_Sizer1.Add(self.int_mode_menu, -1, wx.ALL|wx.EXPAND,5)
+#        ring_removal_Sizer2.Add(rr_thresh_label, wx.ALL, 5)
+#        ring_removal_Sizer2.Add(self.rr_thresh_upper_blank, wx.ALL, 5)
+#        ring_removal_Sizer2.Add(self.rr_thresh_lower_blank, wx.ALL, 5)
+#        ring_removal_Sizer2.Add(ring_remove_button, -1, wx.ALL,5)
         pp_filter_Sizer.Add(pp_filter_label, -1, wx.ALL, 5)
         pp_filter_Sizer.Add(self.pp_filter_menu, wx.ALL|wx.EXPAND, 5)
         pp_filter_Sizer.Add(self.pp_filter_button, wx.ALL|wx.EXPAND, 5)     
@@ -1040,28 +1040,28 @@ class APS_13BM(wx.Frame):
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
-        rwidth = int(self.ring_width_blank.GetValue())
-        thresh_max = self.rr_thresh_upper_blank.GetValue()
-        thresh_min = self.rr_thresh_lower_blank.GetValue()
+#        rwidth = int(self.ring_width_blank.GetValue())
+#        thresh_max = self.rr_thresh_upper_blank.GetValue()
+#        thresh_min = self.rr_thresh_lower_blank.GetValue()
         
-        if thresh_max == 'Default Upper':
-            thresh_max = 300.
-        if thresh_min == 'Default Lower':
-            thresh_min = 100.
-        thresh_max = float(thresh_max)
-        thresh_min = float(thresh_min)
+#        if thresh_max == 'Default Upper':
+#            thresh_max = 300.
+#        if thresh_min == 'Default Lower':
+#            thresh_min = 100.
+#        thresh_max = float(thresh_max)
+#        thresh_min = float(thresh_min)
         
-        if thresh_max > self.data.max() or thresh_min < self.data.min():
-            self.status_ID.SetLabel('Ring removal thresholds out of range.')
-            return
-        theta_min = float(self.ring_angle_minimum_blank.GetValue())
+#        if thresh_max > self.data.max() or thresh_min < self.data.min():
+#            self.status_ID.SetLabel('Ring removal thresholds out of range.')
+#            return
+#        theta_min = float(self.ring_angle_minimum_blank.GetValue())
         ## Remove Ring
         tp.remove_ring(self.data,
-                       thresh_max = thresh_max,
-                       thrsh_min= thresh_min,
-                       theta_min = theta_min,
-                       rwidth = rwidth,
-                       int_mode = self.int_mode,
+#                       thresh_max = thresh_max,
+#                       thrsh_min= thresh_min,
+#                       theta_min = theta_min,
+#                       rwidth = rwidth,
+#                       int_mode = self.int_mode,
                        ncore = self.ncore,
                        nchunk = self.nchunk,
                        out = self.data)
