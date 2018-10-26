@@ -493,7 +493,7 @@ class APS_13BM(wx.Frame):
         '''
         Reads in tomography data.
         '''
-        with wx.FileDialog(self, "Select Data File", wildcard="Data files (*.nc; *.volume)|*.nc;*.volume",
+        with wx.FileDialog(self, "Select Data File", wildcard="Data files (*.nc; *.volume)|*.nc;*.volume|APS 32-ID (*.h5)|*.h5",
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST|wx.FD_CHANGE_DIR) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return     # for if the user changed their mind
@@ -508,6 +508,41 @@ class APS_13BM(wx.Frame):
                     fname = file
                     _path, _fname = os.path.split(path)
                     self.fname1 = file 
+                    if _fname.endswith('.h5'):
+                        self.status_ID.SetLabel('APS 32-ID detected.')
+                        start = 0
+                        end = 16
+                        self.data, self.flat, self.dark, self.theta = dx.read_aps_32id(fname=_fname, sino = (start,end))
+                        print('flat array is ', self.flat.shape)
+                        print('dark array is ', self.dark.shape)
+                        print('data array is ', self.data.shape)
+                        ## Storing the dimensions for updating GUI.
+                        self.sx = self.data.shape[2]
+                        self.sy = self.data.shape[0]
+                        self.sz = self.data.shape[1]                        
+                        self.data_min = self.data.min()
+                        self.data_max = self.data.max()
+                        ## Updating the GUI.
+                        self._fname = _fname[0:-5]
+                        self.update_info(path=_path, 
+                                         fname=self._fname, 
+                                         sx=self.sx, 
+                                         sy=self.sy, 
+                                         sz=self.sz, 
+                                         dark=self.dark,
+                                         data_max=self.data_max,
+                                         data_min=self.data_min)
+                        ## Updating the Centering Parameters Defaults for the dataset.
+                        self.upper_rot_slice_blank.SetValue(str(int(self.sz-(self.sz/4))))
+                        self.upper_rot_center_blank.SetValue(str(self.sx/2))
+                        self.lower_rot_slice_blank.SetValue(str(int(self.sz-3*(self.sz/4))))
+                        self.lower_rot_center_blank.SetValue(str(self.sx/2))
+                        self.status_ID.SetLabel('Data Imported')                         
+                        ## Time stamping.
+                        t1 = time.time()
+                        total = t1-t0
+                        print('Time reading in files ', total)
+                        
                     if _fname.endswith('.nc'):
                         '''
                         Reading in .nc files. APS 13BM format. 
@@ -527,10 +562,15 @@ class APS_13BM(wx.Frame):
                         for line in setup_data:
                             words = line[:-1].split(':',1)
                             result[words[0].lower()] = words[1]
-                        self.dark = float(result['dark_current'])                       
+                        self.dark = float(result['dark_current'])
+                        print('dark ', isinstance(self.dark, float))
                         ## Read in both flat field files.
                         self.flat1 = dx.exchange.read_aps_13bm(fname[0],format = 'netcdf4')
                         self.flat2 = dx.exchange.read_aps_13bm(fname[2],format = 'netcdf4')
+                        ## Flats from APS 13BM are in seperate arrays. Average then delete.
+                        self.flat = np.concatenate((self.flat1, self.flat2),axis=0)
+                        del self.flat1
+                        del self.flat2
                         ## Storing angles.
                         self.theta = tp.angles(self.data.shape[0])
                         ## Storing the dimensions for updating GUI.
@@ -603,7 +643,10 @@ class APS_13BM(wx.Frame):
         if fname is not None:
             self.file_ID.SetLabel(fname) 
         if dark is not None:
-            self.dark_ID.SetLabel(str(self.dark))   
+            if isinstance(self.dark, float) == True:
+                self.dark_ID.SetLabel(str(self.dark))
+            else:
+                self.dark_ID.SetLabel('Arrary of dark')
         if data_max is not None:
             self.data_max_ID.SetLabel(str(self.data_max))
         if data_min is not None:
@@ -737,16 +780,11 @@ class APS_13BM(wx.Frame):
         self.status_ID.SetLabel('Preprocessing')
         ## Setting up timestamp.
         t0 = time.time()
-        ## Flats from APS 13BM are in seperate arrays. Average then delete.
-        self.flat = np.concatenate((self.flat1, self.flat2),axis=0)
-        del self.flat1
-        del self.flat2
-        self.data = self.data
-        self.flat = self.flat
         ## Only single value is collected for dark current from APS 13BM.
         ## Create array of same size for normalizing.
-        self.dark = float(self.dark_ID.GetValue())
-        self.dark = self.flat*0+self.dark
+        if isinstance(self.dark, float) == True:
+            self.dark = float(self.dark_ID.GetValue())
+            self.dark = self.flat*0+self.dark
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
@@ -875,7 +913,7 @@ class APS_13BM(wx.Frame):
         upper_rot_center = float(self.upper_rot_center_blank.GetValue())
         ## Remember to remove this before syncing.
         if self.npad != 0:
-            upper_rot_center = float(self.upper_rot_center+self.npad)
+            upper_rot_center = float(upper_rot_center+self.npad)
         start = int(self.upper_rot_slice_blank.GetValue())        
         self.data_slice = self.data[:,start:start+1,:]
         self.data_slice = tp.recon(self.data_slice,
@@ -896,7 +934,7 @@ class APS_13BM(wx.Frame):
         t0 = time.time()
         lower_rot_center = float(self.lower_rot_center_blank.GetValue())
         if self.npad != 0:
-            lower_rot_center = float(self.lower_rot_center+self.npad)
+            lower_rot_center = float(lower_rot_center+self.npad)
         start = int(self.lower_rot_slice_blank.GetValue())        
         self.data_slice = self.data[:,start:start+1,:]
         self.data_slice = tp.recon(self.data_slice,
