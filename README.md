@@ -1,8 +1,11 @@
 # TomoPy_GUI
 Written by B.M.Gibson with significant help from Matt Newville and Doga Gursoy.  
 TomoPy_GUI is a simple interface for reconstructing synchrotron tomography datasets using TomoPy.  
-Currently, this UI is optimized for APS 13-BM netcdf datasets, but future interations will expand to accommodate data formats.  
 More information about TomoPy can be found at https://github.com/tomopy/tomopy.  
+
+# This branch:
+This branch is setup to incorporate more data types than just netcdf. Currently, hdf5 appears to work with limited testing.   
+  
 
 # Dependencies
 Users will need to install the following packages.
