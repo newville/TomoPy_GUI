@@ -513,6 +513,10 @@ class APS_13BM(wx.Frame):
                         start = 0
                         end = 16
                         self.data, self.flat, self.dark, self.theta = dx.read_aps_32id(fname=_fname, sino = (start,end))
+                        if (self.theta is None):
+                            self.theta = tp.angles(self.data[0])
+                        else:
+                            pass
                         print('flat array is ', self.flat.shape)
                         print('dark array is ', self.dark.shape)
                         print('data array is ', self.data.shape)
@@ -789,6 +793,10 @@ class APS_13BM(wx.Frame):
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
         ## First normalization using flats and dark current.
+        if self.pad_size != 0:
+            if int(self.pad_size) < self.data.shape[2]:
+                self.status_ID.SetLabel('Pad Size too small for dataset. Data not normalized.')
+                return
         self.data = tp.normalize(self.data, 
                                  flat=self.flat, 
                                  dark=self.dark, 
@@ -799,7 +807,6 @@ class APS_13BM(wx.Frame):
                                         air = 10)
         ## Allows user to pad sinogram.
         if self.pad_size != 0:
-            self.npad = 0
             if int(self.pad_size) < self.data.shape[2]:
                 self.status_ID.SetLabel('Pad Size too small for dataset. Normalized but no padding.')
                 return
