@@ -1,6 +1,6 @@
 '''
 TomoPy UI version designed for APS 13BM.
-User interface written by B.M. Gibson and Matt Newville.
+User interface written by B.M. Gibson with significant help from Matt Newville and Doga Gursoy.
 Version 1.0 (October 9, 2018)
 
 Updates:
