@@ -1016,11 +1016,12 @@ class APS_13BM(wx.Frame):
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
+        size = 9
         ## Remove Ring
-        tp.remove_ring(self.data,
-                       ncore = self.ncore,
-                       nchunk = self.nchunk,
-                       out = self.data)
+        self.data = tp.prep.stripe.remove_stripe_sf(self.data,
+                                                    size = size,
+                                                    ncore = self.ncore,
+                                                    nchunk = self.nchunk)
         t1 = time.time()
         print('made it through ring removal.', t1-t0)
         self.status_ID.SetLabel('Ring removed.')
