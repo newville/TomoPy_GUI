@@ -116,6 +116,9 @@ class APS_13BM(wx.Frame):
         self.bg_cb = wx.CheckBox(self.panel, label = 'Additional Air Normalization', size = (-1,-1))
         self.bg_cb.Bind(wx.EVT_CHECKBOX, self.onChecked)
         self.bg_cb.SetValue(True)
+        ring_width_label = wx.StaticText(self.panel, label = 'Ring Kernel Width: ', size = (-1,-1))
+        self.ring_width_blank = wx.TextCtrl(self.panel, value = '9')
+        self.ring_width = 9
         zinger_button = wx.Button(self.panel, -1, label = 'Remove Artifacts', size = (-1,-1))
         zinger_button.Bind(wx.EVT_BUTTON, self.zinger_removal)
         preprocess_button = wx.Button(self.panel, -1, label ='Preprocess', size = (-1,-1))  # this is normalizing step.
@@ -297,6 +300,7 @@ class APS_13BM(wx.Frame):
         preprocessing_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_panel_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_pad_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        preprocessing_ring_width_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_zinger_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         centering_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -321,9 +325,6 @@ class APS_13BM(wx.Frame):
         movie_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         pp_label_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ring_removal_Sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        ring_removal_Sizer2 = wx.BoxSizer(wx.HORIZONTAL)        
-        ring_removal_Sizer3 = wx.BoxSizer(wx.HORIZONTAL)
         pp_filter_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         save_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -348,6 +349,9 @@ class APS_13BM(wx.Frame):
         preprocessing_panel_Sizer.Add(self.dark_ID, wx.ALL, 5)
         preprocessing_panel_Sizer.Add(self.pad_size_combo, wx.ALL, 5)
         preprocessing_title_Sizer.Add(self.bg_cb, wx.ALL, 5)
+        preprocessing_ring_width_Sizer.Add(ring_width_label, -1, wx.ALL|wx.ALIGN_CENTER, 5)
+        preprocessing_ring_width_Sizer.Add(self.ring_width_blank, -1, wx.ALL|wx.ALIGN_CENTER, 5)
+        preprocessing_ring_width_Sizer.Add(ring_remove_button, -1, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER, 5)
         preprocessing_zinger_Sizer.Add(zinger_button, wx.ALL, 5)
         preprocessing_zinger_Sizer.Add(preprocess_button, wx.ALL, 5)
         ## Adding to centering panel.
@@ -374,8 +378,7 @@ class APS_13BM(wx.Frame):
         recon_algo_Sizer.Add(self.filter_menu, 0, wx.ALL, 5)
         recon_button_Sizer.Add(tilt_button, 0, wx.ALL, 5)
         recon_button_Sizer.Add(recon_button, 0, wx.ALL, 5)
-        recon_button_Sizer.Add(ring_remove_button, -1, wx.ALL,5)
-        
+
         '''
         Adding all widgets to the RIGHT Sizer.
         '''
@@ -428,6 +431,7 @@ class APS_13BM(wx.Frame):
         leftSizer.Add(preprocessing_title_Sizer, 0, wx.ALL|wx.EXPAND,5)
         leftSizer.Add(preprocessing_panel_Sizer, 0, wx.EXPAND, 10)
         leftSizer.Add(preprocessing_pad_Sizer, 0, wx.EXPAND,5)
+        leftSizer.Add(preprocessing_ring_width_Sizer, 0, wx.EXPAND, 5)
         leftSizer.Add(preprocessing_zinger_Sizer, 0, wx.EXPAND, 5)
         leftSizer.Add(wx.StaticLine(self.panel),0,wx.ALL|wx.EXPAND, 5)
         leftSizer.Add(centering_title_Sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -452,9 +456,6 @@ class APS_13BM(wx.Frame):
         rightSizer.Add(movie_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(pp_label_Sizer, 0, wx.ALL|wx.EXPAND, 5)
-        rightSizer.Add(ring_removal_Sizer1, 0, wx.ALL|wx.EXPAND, 5)
-        rightSizer.Add(ring_removal_Sizer2, 0, wx.ALL|wx.EXPAND, 5)
-        rightSizer.Add(ring_removal_Sizer3, 0, wx.ALL|wx.EXPAND,5)
         rightSizer.Add(pp_filter_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(save_title_Sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -829,7 +830,7 @@ class APS_13BM(wx.Frame):
         '''
         self.status_ID.SetLabel('Reconstructing slice.')
         t0 = time.time()
-        self.upper_rot_center = float(self.upper_rot_center_blank.GetValue())
+        upper_rot_center = float(self.upper_rot_center_blank.GetValue())
         ## Remember to remove this before syncing.
         if self.npad != 0:
             upper_rot_center = float(self.upper_rot_center+self.npad)
@@ -851,7 +852,7 @@ class APS_13BM(wx.Frame):
         '''
         self.status_ID.SetLabel('Reconstructing slice.')
         t0 = time.time()
-        self.lower_rot_center = float(self.lower_rot_center_blank.GetValue())
+        lower_rot_center = float(self.lower_rot_center_blank.GetValue())
         if self.npad != 0:
             lower_rot_center = float(self.lower_rot_center+self.npad)
         start = int(self.lower_rot_slice_blank.GetValue())        
@@ -1004,24 +1005,28 @@ class APS_13BM(wx.Frame):
             self.int_mode = self.int_mode_menu.GetStringSelection()
             print('Int_mode is now ', self.int_mode)
 
-    def remove_ring(self, event):
+    def remove_ring(self, event=None):
         '''
         Removes ring artifact from reconstructed data.
         Default values for now. Have opened a branch to develop this with 
         more options in the future.
         '''
-        self.status_ID.SetLabel('Removing Ring Default Settings.')    
+        self.status_ID.SetLabel('Deringing')     
         ## Setting up timestamp.
         t0 = time.time()
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
-        size = 9
-        ## Remove Ring
+        ring_width = int(self.ring_width_blank.GetValue())
+        ## If ring width is an even number, make odd.
+        if ring_width % 2 == 0:
+            ring_width = ring_width + 1     
+        ## Remove Ring      
+        print('kernel size is ', ring_width)
         self.data = tp.prep.stripe.remove_stripe_sf(self.data,
-                                                    size = size,
-                                                    ncore = self.ncore,
-                                                    nchunk = self.nchunk)
+                                                    size = ring_width)
+#                                                    ncore = self.ncore,
+#                                                    nchunk = self.nchunk)
         t1 = time.time()
         print('made it through ring removal.', t1-t0)
         self.status_ID.SetLabel('Ring removed.')
