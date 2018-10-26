@@ -116,9 +116,13 @@ class APS_13BM(wx.Frame):
         self.bg_cb = wx.CheckBox(self.panel, label = 'Additional Air Normalization', size = (-1,-1))
         self.bg_cb.Bind(wx.EVT_CHECKBOX, self.onChecked)
         self.bg_cb.SetValue(True)
+        ## Allow user to specify kernel size for ring removal
         ring_width_label = wx.StaticText(self.panel, label = 'Ring Kernel Width: ', size = (-1,-1))
         self.ring_width_blank = wx.TextCtrl(self.panel, value = '9')
         self.ring_width = 9
+        ## Allow user to specify zinger threshold
+        zinger_diff_label = wx.StaticText(self.panel, label = 'Zinger difference: ')
+        self.zinger_diff_blank = wx.TextCtrl(self.panel, value = 'Est: Median - Zinger')
         zinger_button = wx.Button(self.panel, -1, label = 'Remove Artifacts', size = (-1,-1))
         zinger_button.Bind(wx.EVT_BUTTON, self.zinger_removal)
         preprocess_button = wx.Button(self.panel, -1, label ='Preprocess', size = (-1,-1))  # this is normalizing step.
@@ -302,6 +306,7 @@ class APS_13BM(wx.Frame):
         preprocessing_pad_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_ring_width_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_zinger_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        preprocessing_preprocess_button_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         centering_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         recon_upper_center_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -352,8 +357,10 @@ class APS_13BM(wx.Frame):
         preprocessing_ring_width_Sizer.Add(ring_width_label, -1, wx.ALL|wx.ALIGN_CENTER, 5)
         preprocessing_ring_width_Sizer.Add(self.ring_width_blank, -1, wx.ALL|wx.ALIGN_CENTER, 5)
         preprocessing_ring_width_Sizer.Add(ring_remove_button, -1, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER, 5)
-        preprocessing_zinger_Sizer.Add(zinger_button, wx.ALL, 5)
-        preprocessing_zinger_Sizer.Add(preprocess_button, wx.ALL, 5)
+        preprocessing_zinger_Sizer.Add(zinger_diff_label, 0, wx.ALL|wx.ALIGN_CENTER, 5)
+        preprocessing_zinger_Sizer.Add(self.zinger_diff_blank, -1, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER, 5)
+        preprocessing_zinger_Sizer.Add(zinger_button, -1, wx.ALL, 5)
+        preprocessing_preprocess_button_Sizer.Add(preprocess_button, wx.ALL, 5)
         ## Adding to centering panel.
         centering_title_Sizer.Add(centering_label, 0, wx.ALL, 5)
         centering_title_Sizer.Add(rot_center_button, 0, wx.RIGHT|wx.EXPAND|wx.ALIGN_CENTER, 5)
@@ -433,6 +440,7 @@ class APS_13BM(wx.Frame):
         leftSizer.Add(preprocessing_pad_Sizer, 0, wx.EXPAND,5)
         leftSizer.Add(preprocessing_ring_width_Sizer, 0, wx.EXPAND, 5)
         leftSizer.Add(preprocessing_zinger_Sizer, 0, wx.EXPAND, 5)
+        leftSizer.Add(preprocessing_preprocess_button_Sizer, 0, wx.EXPAND, 5)
         leftSizer.Add(wx.StaticLine(self.panel),0,wx.ALL|wx.EXPAND, 5)
         leftSizer.Add(centering_title_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         leftSizer.Add(recon_upper_center_Sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -666,25 +674,54 @@ class APS_13BM(wx.Frame):
             self.npad = int(0)
         else:
             self.pad_size = int(new_pad)
-    
-    def zinger_removal(self, event):
+
+    def remove_ring(self, event=None):
         '''
-        Remove artifacts from raw data.
+        Removes ring artifact from reconstructed data.
+        Default values for now. Have opened a branch to develop this with 
+        more options in the future.
         '''
-        self.status_ID.SetLabel('Correcting Artifacts')
+        self.status_ID.SetLabel('Deringing')     
+        ## Setting up timestamp.
         t0 = time.time()
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
-        self.data = tp.remove_outlier(self.data,
-                                      dif = 1.2,    #number provided in tomoRecon
-                                      ncore = self.ncore,)
-        print('outliers done')
-        self.data = tp.prep.stripe.remove_stripe_fw(self.data,
-                                                    ncore = self.ncore,
-                                                    nchunk = self.nchunk)
+        ring_width = int(self.ring_width_blank.GetValue())
+        ## If ring width is an even number, make odd.
+        if ring_width % 2 == 0:
+            ring_width = ring_width + 1     
+        ## Remove Ring      
+        print('kernel size is ', ring_width)
+        self.data = tp.prep.stripe.remove_stripe_sf(self.data,
+                                                    size = ring_width)
+#                                                    ncore = self.ncore,
+#                                                    nchunk = self.nchunk)
         t1 = time.time()
-        print('artifacts removed: ', t1-t0)
+        print('made it through ring removal.', t1-t0)
+        self.status_ID.SetLabel('Ring removed.')
+        
+    def zinger_removal(self, event):
+        '''
+        Remove artifacts from raw data.
+        '''
+        self.status_ID.SetLabel('Correcting Zingers')
+        t0 = time.time()
+        ## Pull user specified processing power.
+        self.nchunk = int(self.nchunk_blank.GetValue())
+        self.ncore = int(self.ncore_blank.GetValue())
+        try:
+            self.zinger = float(self.zinger_diff_blank.GetValue())
+        except:
+            self.status_ID.SetLabel('Provide expected difference b/n zinger and median data value')
+            return
+        size = int(self.ring_width_blank.GetValue())
+        self.data = tp.remove_outlier(self.data,
+                                      dif = self.zinger,
+                                      size = size,
+                                      ncore = self.ncore,)
+        t1 = time.time()
+        print('Zingers removed: ', t1-t0)
         self.status_ID.SetLabel('Artifacts Removed.')
 
     def normalization(self, event):
@@ -1004,32 +1041,6 @@ class APS_13BM(wx.Frame):
     def OnIntModeBox(self, event = None):
             self.int_mode = self.int_mode_menu.GetStringSelection()
             print('Int_mode is now ', self.int_mode)
-
-    def remove_ring(self, event=None):
-        '''
-        Removes ring artifact from reconstructed data.
-        Default values for now. Have opened a branch to develop this with 
-        more options in the future.
-        '''
-        self.status_ID.SetLabel('Deringing')     
-        ## Setting up timestamp.
-        t0 = time.time()
-        ## Pull user specified processing power.
-        self.nchunk = int(self.nchunk_blank.GetValue())
-        self.ncore = int(self.ncore_blank.GetValue())
-        ring_width = int(self.ring_width_blank.GetValue())
-        ## If ring width is an even number, make odd.
-        if ring_width % 2 == 0:
-            ring_width = ring_width + 1     
-        ## Remove Ring      
-        print('kernel size is ', ring_width)
-        self.data = tp.prep.stripe.remove_stripe_sf(self.data,
-                                                    size = ring_width)
-#                                                    ncore = self.ncore,
-#                                                    nchunk = self.nchunk)
-        t1 = time.time()
-        print('made it through ring removal.', t1-t0)
-        self.status_ID.SetLabel('Ring removed.')
 
     def OnppFilterCombo(self, event):
         '''
