@@ -4,7 +4,7 @@ TomoPy_GUI is a simple interface for reconstructing synchrotron tomography datas
 More information about TomoPy can be found at https://github.com/tomopy/tomopy.  
 
 # This branch:
-This branch is setup to incorporate more data types than just netcdf. Currently, hdf5 appears to work with limited testing.   
+This branch is setup to incorporate more data types than just netcdf. Currently, hdf5 using the dxchange APS 32-ID data import appears to work with limited testing.   
   
 
 # Dependencies
