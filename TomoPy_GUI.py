@@ -122,8 +122,10 @@ class APS_13BM(wx.Frame):
         self.ring_width = 9
         ## Allow user to specify zinger threshold
         zinger_diff_label = wx.StaticText(self.panel, label = 'Zinger difference: ')
-        self.zinger_diff_blank = wx.TextCtrl(self.panel, value = 'Est: Median - Zinger')
-        zinger_button = wx.Button(self.panel, -1, label = 'Remove Artifacts', size = (-1,-1))
+        self.zinger_diff_blank = wx.TextCtrl(self.panel, value = 'Est: Median - Zing')
+        zinger_kernel_size_label = wx.StaticText(self.panel, label = 'Kernel size:')
+        self.zinger_kernel_size_blank = wx.TextCtrl(self.panel, value = '3')
+        zinger_button = wx.Button(self.panel, -1, label = 'Remove Zingers', size = (-1,-1))
         zinger_button.Bind(wx.EVT_BUTTON, self.zinger_removal)
         preprocess_button = wx.Button(self.panel, -1, label ='Preprocess', size = (-1,-1))  # this is normalizing step.
         preprocess_button.Bind(wx.EVT_BUTTON, self.normalization)
@@ -358,9 +360,11 @@ class APS_13BM(wx.Frame):
         preprocessing_ring_width_Sizer.Add(self.ring_width_blank, -1, wx.ALL|wx.ALIGN_CENTER, 5)
         preprocessing_ring_width_Sizer.Add(ring_remove_button, -1, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER, 5)
         preprocessing_zinger_Sizer.Add(zinger_diff_label, 0, wx.ALL|wx.ALIGN_CENTER, 5)
-        preprocessing_zinger_Sizer.Add(self.zinger_diff_blank, -1, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER, 5)
-        preprocessing_zinger_Sizer.Add(zinger_button, -1, wx.ALL, 5)
-        preprocessing_preprocess_button_Sizer.Add(preprocess_button, wx.ALL, 5)
+        preprocessing_zinger_Sizer.Add(self.zinger_diff_blank, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER, 5)
+        preprocessing_zinger_Sizer.Add(zinger_kernel_size_label, -1, wx.ALL|wx.ALIGN_CENTER, 5)
+        preprocessing_zinger_Sizer.Add(self.zinger_kernel_size_blank, -1, wx.ALL|wx.ALIGN_CENTER, 5)
+        preprocessing_preprocess_button_Sizer.Add(zinger_button, -1, wx.ALL, 5)
+        preprocessing_preprocess_button_Sizer.Add(preprocess_button, -1, wx.ALL, 5)
         ## Adding to centering panel.
         centering_title_Sizer.Add(centering_label, 0, wx.ALL, 5)
         centering_title_Sizer.Add(rot_center_button, 0, wx.RIGHT|wx.EXPAND|wx.ALIGN_CENTER, 5)
@@ -383,8 +387,8 @@ class APS_13BM(wx.Frame):
         recon_algo_Sizer.Add(self.recon_menu, 0, wx.ALL, 5)
         recon_algo_Sizer.Add(filter_label, 0, wx.ALL, 5)
         recon_algo_Sizer.Add(self.filter_menu, 0, wx.ALL, 5)
-        recon_button_Sizer.Add(tilt_button, 0, wx.ALL, 5)
-        recon_button_Sizer.Add(recon_button, 0, wx.ALL, 5)
+        recon_button_Sizer.Add(tilt_button, -1, wx.ALL, 5)
+        recon_button_Sizer.Add(recon_button, -1, wx.ALL, 5)
 
         '''
         Adding all widgets to the RIGHT Sizer.
@@ -678,8 +682,6 @@ class APS_13BM(wx.Frame):
     def remove_ring(self, event=None):
         '''
         Removes ring artifact from reconstructed data.
-        Default values for now. Have opened a branch to develop this with 
-        more options in the future.
         '''
         self.status_ID.SetLabel('Deringing')     
         ## Setting up timestamp.
@@ -703,13 +705,16 @@ class APS_13BM(wx.Frame):
         
     def zinger_removal(self, event):
         '''
-        Remove artifacts from raw data.
+        Remove zingers from raw data.
         '''
         self.status_ID.SetLabel('Correcting Zingers')
         t0 = time.time()
         ## Pull user specified processing power.
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
+        zinger_kernel_size = int(self.zinger_kernel_size_blank.GetValue())
+        if zinger_kernel_size % 2 == 0:
+            zinger_kernel_size = zinger_kernel_size + 1
         try:
             self.zinger = float(self.zinger_diff_blank.GetValue())
         except:
