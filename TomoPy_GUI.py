@@ -525,6 +525,7 @@ class APS_13BM(wx.Frame):
             datatype = 'tiff'
         elif self.beamline == 'ALS 8.3.2':
             datatype = 'hdf5'
+            self.wildcard = "HDF5 files (*.h5)|*.h5"
         elif self.beamline == 'Elettra Syrmep':
             datatype = 'tiff'
         elif self.beamline == 'ESRF ID-19':
@@ -546,14 +547,17 @@ class APS_13BM(wx.Frame):
             datatype = 'tiff'
         elif self.beamline == 'X-radia XRM':
             datatype = 'xrm'
-        accepted = ['APS 2-BM or 32-ID','APS 13-BM']
-        self.status_ID.SetLabel(str(self.beamlines_dropdown.GetStringSelection()) + ' data should be ' + datatype)
+        accepted = ['ALS 8.3.2','APS 13-BM','APS 2-BM or 32-ID']
+        self.status_ID.SetLabel(self.beamline + ' data should be ' + datatype + '.  WARNING: not all formats have been tested.')
         if self.beamline not in accepted:
             self.status_ID.SetLabel('Data format not yet implemented. Please pick another.')
             self.wildcard = 'NetCDF files (*.nc; *.volume)|*.nc;*.volume|HDF5 (*.h5)|*.h5'
+
     def client_read_nc(self, event):
         '''
-        Reads in tomography data.
+        Reads in various tomography data.
+        For HDF5 files, need to determine (or allow user to specify) sino start and end paramters.
+        Also, need to know if HDF5 files come with angles, or if actually do need to create them like in the examples.
         '''
         with wx.FileDialog(self, "Select Data File", wildcard=self.wildcard,
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST|wx.FD_CHANGE_DIR) as fileDialog:
@@ -570,6 +574,38 @@ class APS_13BM(wx.Frame):
                     fname = file
                     _path, _fname = os.path.split(path)
                     self.fname1 = file 
+                    if _fname.endswith('.h5') and self.beamline == 'ALS 8.3.2':
+                        self.status_ID.SetLabel('Attempting as ALS 8.3.2.')
+                        start = 0
+                        end = 16
+                        self.data, self.flat, self.dark, self.grp_flat = dx.read_als_832h5(fname=_fname, sino=(start,stop))
+                        self.theta = tp.angles(self.data.shape[0], 0, 180)
+                        self.sx = self.data.shape[2]
+                        self.sy = self.data.shape[0]
+                        self.sz = self.data.shape[1]                        
+                        self.data_min = self.data.min()
+                        self.data_max = self.data.max()
+                        ## Updating the GUI.
+                        self._fname = _fname[0:-5]
+                        self.update_info(path=_path, 
+                                         fname=self._fname, 
+                                         sx=self.sx, 
+                                         sy=self.sy, 
+                                         sz=self.sz, 
+                                         dark=self.dark,
+                                         data_max=self.data_max,
+                                         data_min=self.data_min)
+                        ## Updating the Centering Parameters Defaults for the dataset.
+                        self.upper_rot_slice_blank.SetValue(str(int(self.sz-(self.sz/4))))
+                        self.upper_rot_center_blank.SetValue(str(self.sx/2))
+                        self.lower_rot_slice_blank.SetValue(str(int(self.sz-3*(self.sz/4))))
+                        self.lower_rot_center_blank.SetValue(str(self.sx/2))
+                        self.status_ID.SetLabel('Data Imported')                         
+                        ## Time stamping.
+                        t1 = time.time()
+                        total = t1-t0
+                        print('Time reading in files ', total)
+                    
                     if _fname.endswith('.h5') and self.beamline == 'APS 2-BM or 32-ID':
                         self.status_ID.SetLabel('Attempting as APS 2-BM or 32-ID.')
                         start = 0
@@ -614,6 +650,7 @@ class APS_13BM(wx.Frame):
                         Reading in .nc files. APS 13BM format. 
                         Reads in 2 flats (.nc), .setup, and data (.nc).
                         '''
+                        self.status_ID.SetLabel('Attempting as APS 13-BM.')
                         ## Gather list of all .nc files sharing same fname string.
                         fname = glob.glob(_fname[0:-5]+"*[1-3].nc") 
                         ## Entries 1 and 3 of fname list are flat fields.
