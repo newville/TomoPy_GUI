@@ -82,6 +82,7 @@ class APS_13BM(wx.Frame):
         self.menuBar.EnableTop(0,False)        
         title_label = wx.StaticText(self.panel, 1, label = 'TomoPy (optimized for APS 13-BM)')             
         beamlines = [
+                'APS 8-BM',
                 'Anka TopoTomo',
                 'Australian Synchrotron',
                 'ALS 8.3.2',
@@ -89,7 +90,6 @@ class APS_13BM(wx.Frame):
                 'ESRF ID-19',
                 'APS 1-ID',
                 'APS 5-BM',
-                'APS 8-BM',
                 'APS 13-BM',
                 'APS 26-ID',
                 'APS 2-BM or 32-ID',
@@ -99,7 +99,7 @@ class APS_13BM(wx.Frame):
                 ]
         beamlines_title = wx.StaticText(self.panel, -1, label = 'Acquisition Beamline:  ', size = (-1,-1))
         self.beamline = 'APS 13-BM'
-        self.beamlines_dropdown = wx.ComboBox(self.panel, -1, value = self.beamline, choices = beamlines)
+        self.beamlines_dropdown = wx.ComboBox(self.panel, -1, value = 'Pick a beamline', choices = beamlines)
         self.beamlines_dropdown.Bind(wx.EVT_COMBOBOX, self.getBeamline)
         
         '''
