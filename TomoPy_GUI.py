@@ -62,7 +62,7 @@ class APS_13BM(wx.Frame):
         '''
         Making the menu
         '''
-        menuBar = wx.MenuBar()
+        self.menuBar = wx.MenuBar()
         menu = wx.Menu()
         ## Making menu buttons.
         menu_open = menu.Append(wx.NewId(), "Import Data", "Read in data files")
@@ -70,16 +70,37 @@ class APS_13BM(wx.Frame):
         menu_free = menu.Append(wx.NewId(), "Free Memory", "Release data from RAM")        
         menu_exit = menu.Append(wx.NewId(),"Exit", "Terminate the program")
         ## Adding buttons to the File menu button of the bar.
-        menuBar.Append(menu, "File");
-        self.SetMenuBar(menuBar)
+        self.menuBar.Append(menu, "File");
+        self.SetMenuBar(self.menuBar)
         ## Binding the menu commands to respective buttons.
         self.Bind(wx.EVT_MENU, self.client_read_nc, menu_open)
         self.Bind(wx.EVT_MENU, self.change_dir, menu_chdr)
         self.Bind(wx.EVT_MENU, self.client_free_mem, menu_free)
         self.Bind(wx.EVT_MENU, self.OnExit, menu_exit)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
-        self.panel = wx.Panel(self)        
+        self.panel = wx.Panel(self)
+        self.menuBar.EnableTop(0,False)        
         title_label = wx.StaticText(self.panel, 1, label = 'TomoPy (optimized for APS 13-BM)')             
+        beamlines = [
+                'Anka TopoTomo',
+                'Australian Synchrotron',
+                'ALS 8.3.2',
+                'Elettra Syrmep',
+                'ESRF ID-19',
+                'APS 1-ID',
+                'APS 5-BM',
+                'APS 8-BM',
+                'APS 13-BM',
+                'APS 26-ID',
+                'APS 2-BM or 32-ID',
+                'Petra III P05',
+                'SLS Tomcat',
+                'X-radia XRM'
+                ]
+        beamlines_title = wx.StaticText(self.panel, -1, label = 'Acquisition Beamline:  ', size = (-1,-1))
+        self.beamline = 'APS 13-BM'
+        self.beamlines_dropdown = wx.ComboBox(self.panel, -1, value = self.beamline, choices = beamlines)
+        self.beamlines_dropdown.Bind(wx.EVT_COMBOBOX, self.getBeamline)
         
         '''
         Info Panel (File) - Top Left
@@ -299,6 +320,7 @@ class APS_13BM(wx.Frame):
         rightSizer = wx.BoxSizer(wx.VERTICAL)
         
         ## Creating Sizers for the left column.
+        beamlines_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         info_fname_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         info_path_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         info_status_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -344,6 +366,8 @@ class APS_13BM(wx.Frame):
         ## Adding title to topSizer
         leftSizer.Add(title_label, 0, wx.ALL|wx.EXPAND, 5)
         ## Adding to info panel.
+        beamlines_Sizer.Add(beamlines_title, 0, wx.ALL|wx.EXPAND|wx.ALIGN_BOTTOM, 5)
+        beamlines_Sizer.Add(self.beamlines_dropdown, 0, wx.ALL|wx.EXPAND|wx.ALIGN_TOP,5)
         info_fname_Sizer.Add(file_label, 0, wx.ALL|wx.EXPAND, 5)
         info_fname_Sizer.Add(self.file_ID, wx.ALL|wx.EXPAND, 5)
         info_path_Sizer.Add(path_label,  0, wx.ALL|wx.EXPAND, 5)
@@ -434,6 +458,7 @@ class APS_13BM(wx.Frame):
         Adding to leftSizer.
         '''
         ## Adding all subpanels to the topSizer panel. Allows overall aligment.
+        leftSizer.Add(beamlines_Sizer, 0, wx.EXPAND,5)
         leftSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         leftSizer.Add(info_fname_Sizer, 0, wx.EXPAND)
         leftSizer.Add(info_path_Sizer, 0, wx.EXPAND)
@@ -489,6 +514,11 @@ class APS_13BM(wx.Frame):
     Methods called by widgets from above. Organized by location. 
     First set of methods are closely associated with the main menu bar.
     '''
+    def getBeamline(self, event = None):
+        self.menuBar.EnableTop(0, True)
+        if self.beamline == 'APS 13-BM':
+            datatype = 'netCDF'
+            self.status_ID.SetLabel('Beamline Data should be '+ datatype)
     def client_read_nc(self, event):
         '''
         Reads in tomography data.
