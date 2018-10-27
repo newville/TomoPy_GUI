@@ -82,7 +82,7 @@ class APS_13BM(wx.Frame):
         self.menuBar.EnableTop(0,False)        
         title_label = wx.StaticText(self.panel, 1, label = 'TomoPy (optimized for APS 13-BM)')             
         beamlines = [
-                'APS 8-BM',
+                'APS 13-BM',
                 'Anka TopoTomo',
                 'Australian Synchrotron',
                 'ALS 8.3.2',
@@ -90,7 +90,7 @@ class APS_13BM(wx.Frame):
                 'ESRF ID-19',
                 'APS 1-ID',
                 'APS 5-BM',
-                'APS 13-BM',
+                'APS 8-BM',
                 'APS 26-ID',
                 'APS 2-BM or 32-ID',
                 'Petra III P05',
@@ -569,7 +569,7 @@ class APS_13BM(wx.Frame):
                     fname = file
                     _path, _fname = os.path.split(path)
                     self.fname1 = file 
-                    if _fname.endswith('.h5') and self.beamline == 'APS 2-BM or 32-ID':
+                    if _fname.endswith('.h5') and str(self.beamlines_dropdown.GetStringSelection()) == 'APS 2-BM or 32-ID':
                         self.status_ID.SetLabel('Attempting as APS 2-BM or 32-ID.')
                         start = 0
                         end = 16
@@ -608,7 +608,7 @@ class APS_13BM(wx.Frame):
                         total = t1-t0
                         print('Time reading in files ', total)
                         
-                    if _fname.endswith('.nc'):
+                    if _fname.endswith('.nc')and str(self.beamlines_dropdown.GetStringSelection()) == 'APS 13-BM':
                         '''
                         Reading in .nc files. APS 13BM format. 
                         Reads in 2 flats (.nc), .setup, and data (.nc).
@@ -633,9 +633,11 @@ class APS_13BM(wx.Frame):
                         self.flat1 = dx.exchange.read_aps_13bm(fname[0],format = 'netcdf4')
                         self.flat2 = dx.exchange.read_aps_13bm(fname[2],format = 'netcdf4')
                         ## Flats from APS 13BM are in seperate arrays. Average then delete.
+                        self.status_ID.SetLabel('Averaging flat fields')
                         self.flat = np.concatenate((self.flat1, self.flat2),axis=0)
                         del self.flat1
                         del self.flat2
+                        self.status_ID.SetLabel('Finishing data import')
                         ## Storing angles.
                         self.theta = tp.angles(self.data.shape[0])
                         ## Storing the dimensions for updating GUI.
