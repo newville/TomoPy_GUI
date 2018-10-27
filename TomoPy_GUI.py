@@ -98,7 +98,6 @@ class APS_13BM(wx.Frame):
                 'X-radia XRM'
                 ]
         beamlines_title = wx.StaticText(self.panel, -1, label = 'Acquisition Beamline:  ', size = (-1,-1))
-        self.beamline = 'APS 13-BM'
         self.beamlines_dropdown = wx.ComboBox(self.panel, -1, value = 'Pick a beamline', choices = beamlines)
         self.beamlines_dropdown.Bind(wx.EVT_COMBOBOX, self.getBeamline)
         
@@ -516,14 +515,46 @@ class APS_13BM(wx.Frame):
     '''
     def getBeamline(self, event = None):
         self.menuBar.EnableTop(0, True)
-        if self.beamline == 'APS 13-BM':
-            datatype = 'netCDF'
-            self.status_ID.SetLabel('Beamline Data should be '+ datatype)
+        if str(self.beamlines_dropdown.GetStringSelection()) == 'APS 13-BM':
+            datatype = 'NetCDF'
+            self.wildcard = "Data files (*.nc; *.volume)|*.nc;*.volume"
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'Anka TopoTomo':
+            datatype = 'tiff'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'Australian Synchrotron':
+            datatype = 'tiff'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'ALS 8.3.2':
+            datatype = 'hdf5'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'Elettra Syrmep':
+            datatype = 'tiff'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'ESRF ID-19':
+            datatype = 'edf'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 1-ID':
+            datatype = 'tiff'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 5-BM':
+            datatype = 'xmt'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 8-BM':
+            datatype = 'xrm'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 26-ID':
+            datatype = 'xrm'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 2-BM or 32-ID':
+            datatype = 'hdf5'
+            self.wildcard = "HDF5 files (*.h5)|*.h5"
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'Petra III P05':
+            datatype = 'tiff'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'SLS Tomcat':
+            datatype = 'tiff'
+        elif str(self.beamlines_dropdown.GetStringSelection()) == 'X-radia XRM':
+            datatype = 'xrm'
+        accepted = ['APS 2-BM or 32-ID','APS 13-BM']
+        self.status_ID.SetLabel(str(self.beamlines_dropdown.GetStringSelection()) + ' data should be ' + datatype)
+        if str(self.beamlines_dropdown.GetStringSelection()) not in accepted:
+            self.status_ID.SetLabel('Data format not yet implemented. Please pick another.')
+            self.wildcard = 'NetCDF files (*.nc; *.volume)|*.nc;*.volume|HDF5 (*.h5)|*.h5'
     def client_read_nc(self, event):
         '''
         Reads in tomography data.
         '''
-        with wx.FileDialog(self, "Select Data File", wildcard="Data files (*.nc; *.volume)|*.nc;*.volume|APS 32-ID (*.h5)|*.h5",
+        with wx.FileDialog(self, "Select Data File", wildcard=self.wildcard,
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST|wx.FD_CHANGE_DIR) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return     # for if the user changed their mind
@@ -538,8 +569,8 @@ class APS_13BM(wx.Frame):
                     fname = file
                     _path, _fname = os.path.split(path)
                     self.fname1 = file 
-                    if _fname.endswith('.h5'):
-                        self.status_ID.SetLabel('APS 32-ID detected.')
+                    if _fname.endswith('.h5') and self.beamline == 'APS 2-BM or 32-ID':
+                        self.status_ID.SetLabel('Attempting as APS 2-BM or 32-ID.')
                         start = 0
                         end = 16
                         self.data, self.flat, self.dark, self.theta = dx.read_aps_32id(fname=_fname, sino = (start,end))
