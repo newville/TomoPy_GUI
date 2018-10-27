@@ -515,39 +515,40 @@ class APS_13BM(wx.Frame):
     '''
     def getBeamline(self, event = None):
         self.menuBar.EnableTop(0, True)
-        if str(self.beamlines_dropdown.GetStringSelection()) == 'APS 13-BM':
+        self.beamline = str(self.beamlines_dropdown.GetStringSelection())
+        if self.beamline == 'APS 13-BM':
             datatype = 'NetCDF'
             self.wildcard = "Data files (*.nc; *.volume)|*.nc;*.volume"
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'Anka TopoTomo':
+        elif self.beamline == 'Anka TopoTomo':
             datatype = 'tiff'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'Australian Synchrotron':
+        elif self.beamline == 'Australian Synchrotron':
             datatype = 'tiff'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'ALS 8.3.2':
+        elif self.beamline == 'ALS 8.3.2':
             datatype = 'hdf5'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'Elettra Syrmep':
+        elif self.beamline == 'Elettra Syrmep':
             datatype = 'tiff'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'ESRF ID-19':
+        elif self.beamline == 'ESRF ID-19':
             datatype = 'edf'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 1-ID':
+        elif self.beamline == 'APS 1-ID':
             datatype = 'tiff'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 5-BM':
+        elif self.beamline == 'APS 5-BM':
             datatype = 'xmt'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 8-BM':
+        elif self.beamline == 'APS 8-BM':
             datatype = 'xrm'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 26-ID':
+        elif self.beamline == 'APS 26-ID':
             datatype = 'xrm'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'APS 2-BM or 32-ID':
+        elif self.beamline == 'APS 2-BM or 32-ID':
             datatype = 'hdf5'
             self.wildcard = "HDF5 files (*.h5)|*.h5"
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'Petra III P05':
+        elif self.beamline == 'Petra III P05':
             datatype = 'tiff'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'SLS Tomcat':
+        elif self.beamline == 'SLS Tomcat':
             datatype = 'tiff'
-        elif str(self.beamlines_dropdown.GetStringSelection()) == 'X-radia XRM':
+        elif self.beamline == 'X-radia XRM':
             datatype = 'xrm'
         accepted = ['APS 2-BM or 32-ID','APS 13-BM']
         self.status_ID.SetLabel(str(self.beamlines_dropdown.GetStringSelection()) + ' data should be ' + datatype)
-        if str(self.beamlines_dropdown.GetStringSelection()) not in accepted:
+        if self.beamline not in accepted:
             self.status_ID.SetLabel('Data format not yet implemented. Please pick another.')
             self.wildcard = 'NetCDF files (*.nc; *.volume)|*.nc;*.volume|HDF5 (*.h5)|*.h5'
     def client_read_nc(self, event):
@@ -569,7 +570,7 @@ class APS_13BM(wx.Frame):
                     fname = file
                     _path, _fname = os.path.split(path)
                     self.fname1 = file 
-                    if _fname.endswith('.h5') and str(self.beamlines_dropdown.GetStringSelection()) == 'APS 2-BM or 32-ID':
+                    if _fname.endswith('.h5') and self.beamline == 'APS 2-BM or 32-ID':
                         self.status_ID.SetLabel('Attempting as APS 2-BM or 32-ID.')
                         start = 0
                         end = 16
@@ -608,7 +609,7 @@ class APS_13BM(wx.Frame):
                         total = t1-t0
                         print('Time reading in files ', total)
                         
-                    if _fname.endswith('.nc')and str(self.beamlines_dropdown.GetStringSelection()) == 'APS 13-BM':
+                    if _fname.endswith('.nc')and self.beamline == 'APS 13-BM':
                         '''
                         Reading in .nc files. APS 13BM format. 
                         Reads in 2 flats (.nc), .setup, and data (.nc).
