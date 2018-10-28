@@ -24,10 +24,12 @@ Updates:
 '''
 ## Importing packages.
 import wx
+import sys
 import os
 import glob
 import gc
 import time
+from optparse import OptionParser
 import scipy
 import skimage
 
@@ -67,7 +69,7 @@ class APS_13BM(wx.Frame):
         ## Making menu buttons.
         menu_open = menu.Append(wx.NewId(), "Import Data", "Read in data files")
         menu_chdr = menu.Append(wx.NewId(), 'Change Directory', 'Change the Saving and Working Directory')
-        menu_free = menu.Append(wx.NewId(), "Free Memory", "Release data from RAM")        
+        menu_free = menu.Append(wx.NewId(), "Free Memory", "Release data from RAM")
         menu_exit = menu.Append(wx.NewId(),"Exit", "Terminate the program")
         ## Adding buttons to the File menu button of the bar.
         menuBar.Append(menu, "File");
@@ -78,9 +80,9 @@ class APS_13BM(wx.Frame):
         self.Bind(wx.EVT_MENU, self.client_free_mem, menu_free)
         self.Bind(wx.EVT_MENU, self.OnExit, menu_exit)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
-        self.panel = wx.Panel(self)        
-        title_label = wx.StaticText(self.panel, 1, label = 'TomoPy (optimized for APS 13-BM)')             
-        
+        self.panel = wx.Panel(self)
+        title_label = wx.StaticText(self.panel, 1, label = 'TomoPy (optimized for APS 13-BM)')
+
         '''
         Info Panel (File) - Top Left
         '''
@@ -91,7 +93,7 @@ class APS_13BM(wx.Frame):
         self.path_ID = wx.StaticText(self.panel, 1, label = '')
         status_label = wx.StaticText(self.panel, -1, label = 'Status: ')
         self.status_ID = wx.StaticText(self.panel, -1, label = '')
-        
+
         '''
         Preprocessing Panel
         '''
@@ -129,12 +131,12 @@ class APS_13BM(wx.Frame):
         zinger_button.Bind(wx.EVT_BUTTON, self.zinger_removal)
         preprocess_button = wx.Button(self.panel, -1, label ='Preprocess', size = (-1,-1))  # this is normalizing step.
         preprocess_button.Bind(wx.EVT_BUTTON, self.normalization)
-        
-        
+
+
         '''
         Centering Panel
         '''
-        ## Initialization of labels, blanks, and buttons for single slice reconstruction. 
+        ## Initialization of labels, blanks, and buttons for single slice reconstruction.
         centering_label = wx.StaticText(self.panel, -1, label = 'Centering Parameters                                                                 ', size = (-1,-1))
         upper_slice_label = wx.StaticText(self.panel, -1, label = 'Upper slice:', size = (-1,-1))
         self.upper_rot_slice_blank = wx.TextCtrl(self.panel, value = '')
@@ -146,11 +148,11 @@ class APS_13BM(wx.Frame):
         self.lower_rot_center_blank = wx.TextCtrl(self.panel, value = '')
         lower_slice_recon_button = wx.Button(self.panel, -1, label = 'Reconstruct Slice', size = (-1,-1))
         lower_slice_recon_button.Bind(wx.EVT_BUTTON, self.lower_recon_slice)
-        
-        ## Initialization of centering parameters. 
+
+        ## Initialization of centering parameters.
         rot_center_button = wx.Button(self.panel, -1, label = 'Optimize Center', size = (-1,-1))
-        rot_center_button.Bind(wx.EVT_BUTTON, self.find_rot_center)        
-        center_method_title = wx.StaticText(self.panel, -1, label = 'Centering Method:', size = (-1,-1)) 
+        rot_center_button.Bind(wx.EVT_BUTTON, self.find_rot_center)
+        center_method_title = wx.StaticText(self.panel, -1, label = 'Centering Method:', size = (-1,-1))
         self.find_center_type = 'Vghia Vo'
         find_center_list = [
                 'Entropy',
@@ -161,19 +163,19 @@ class APS_13BM(wx.Frame):
         tol_title = wx.StaticText(self.panel, -1, label = '       Tolerance: ')
         self.tol_blank = wx.TextCtrl(self.panel, value = '0.25', size = (100,-1))
 
-        
+
         '''
         Reconstruction Panel
         '''
         recon_algo_title = wx.StaticText(self.panel, -1, label = 'Reconstruction')
-                
+
         ## Drop down for reconstruction algorithm choices. Defaults to Gridrec (fastest).
         recon_type_label = wx.StaticText(self.panel, -1, label = "Algorithm: ", size = (-1,-1))
         self.recon_type = 'gridrec'
         recon_type_list = [
                 'Algebraic',
-                'Block Algebraic', 
-                'Filtered Back-projection', 
+                'Block Algebraic',
+                'Filtered Back-projection',
                 'Gridrec',
                 'Max-likelihood Expectation',
                 'Ordered-subset Expectation',
@@ -187,7 +189,7 @@ class APS_13BM(wx.Frame):
                 ]
         self.recon_menu = wx.ComboBox(self.panel, value = 'gridrec', choices = recon_type_list)
         self.recon_menu.Bind(wx.EVT_COMBOBOX, self.OnReconCombo)
-        
+
         ## Filtering choice for during reconstruction.
         self.filter_type = 'hann'
         filter_label = wx.StaticText(self.panel, -1, label = '   Filter:   ', size = (-1,-1))
@@ -203,19 +205,19 @@ class APS_13BM(wx.Frame):
                 ]
         self.filter_menu = wx.ComboBox(self.panel, value = 'hann', choices = filter_list)
         self.filter_menu.Bind(wx.EVT_COMBOBOX, self.OnFilterCombo)
-        
-        ## Buttons for tilting and reconstructing 
+
+        ## Buttons for tilting and reconstructing
         tilt_button = wx.Button(self.panel, -1, label = "Tilt Correction", size = (-1,-1))
         tilt_button.Bind(wx.EVT_BUTTON, self.tilt_correction)
         recon_button = wx.Button(self.panel, -1, label = "Reconstruct", size = (-1,-1))
         recon_button.Bind(wx.EVT_BUTTON, self.reconstruct)
 
-        
+
         '''
         Top Right (Visualize) Panel
         '''
         ## Initializes display for dimensions of dataset.
-        dim_label = wx.StaticText(self.panel, label = "Data Dimensions ")  
+        dim_label = wx.StaticText(self.panel, label = "Data Dimensions ")
         sx_label = wx.StaticText(self.panel, label = 'NX: ')
         sy_label = wx.StaticText(self.panel, label = 'NY: ')
         sz_label = wx.StaticText(self.panel, label = 'NZ: ')
@@ -234,16 +236,16 @@ class APS_13BM(wx.Frame):
         self.visualization_box.Bind(wx.EVT_RADIOBOX, self.OnRadiobox)
         self.z_lble = wx.StaticText(self.panel, label = 'Slice to view: ')
         self.z_dlg = wx.TextCtrl(self.panel, value = 'Enter Slice')
-        self.z = self.z_dlg.GetValue()     
+        self.z = self.z_dlg.GetValue()
         plot_button = wx.Button(self.panel, -1, label ='Plot Image', size = (-1,-1))
-        plot_button.Bind(wx.EVT_BUTTON, self.plotData)     
+        plot_button.Bind(wx.EVT_BUTTON, self.plotData)
         start_movie = wx.Button(self.panel, -1, label = 'Display Movie', size = (-1,-1))
         start_movie.Bind(wx.EVT_BUTTON, self.movie_maker)
-        
+
         self.stop_movie = wx.Button(self.panel, -1, label = 'End Movie', size = (-1,-1))
         self.stop_movie.Bind(wx.EVT_BUTTON, self.onStop)
         self.stop_movie.Disable()
-        
+
         ## Initializes post processing filter choices. These are not automatically applied.
         pp_label = wx.StaticText(self.panel, label = "Post Processing")  #needs to be on own Sizer.
         pp_filter_label = wx.StaticText(self.panel, -1, label = 'Post Processing Filter: ', size = (-1,-1))
@@ -257,8 +259,8 @@ class APS_13BM(wx.Frame):
         self.pp_filter_button = wx.Button(self.panel, -1, label = 'Filter', size = (-1,-1))
         self.pp_filter_button.Bind(wx.EVT_BUTTON, self.filter_pp_data)
         ring_remove_button = wx.Button(self.panel, -1, label = 'Remove Ring', size = (-1,-1))
-        ring_remove_button.Bind(wx.EVT_BUTTON, self.remove_ring)       
-        
+        ring_remove_button.Bind(wx.EVT_BUTTON, self.remove_ring)
+
         ## Initializes data export choices.
         save_title = wx.StaticText(self.panel, label = 'Export Data')
         self.save_dtype = 'f4'
@@ -267,7 +269,7 @@ class APS_13BM(wx.Frame):
                 '16 bit signed', #i2
                 '16 bit unsigned', #u2
                 '32 bit float'#f4
-                ]    
+                ]
         self.save_dtype_menu = wx.ComboBox(self.panel, value = '32 bit float', choices = self.save_dtype_list)
         self.save_dtype_menu.Bind(wx.EVT_COMBOBOX, self.OnSaveDtypeCombo)
         self.save_data_type = '.vol'
@@ -277,10 +279,10 @@ class APS_13BM(wx.Frame):
                 ]
         self.save_data_type_menu = wx.ComboBox(self.panel, value = '.vol', choices = self.save_data_list)
         self.save_data_type_menu.Bind(wx.EVT_COMBOBOX, self.OnSaveDataTypeCombo)
-        
+
         save_recon_button = wx.Button(self.panel, -1, label = "Save Reconstruction", size = (-1,-1))
         save_recon_button.Bind(wx.EVT_BUTTON, self.save_recon)
-        
+
         ## Computation Options panel
         comp_opt_title = wx.StaticText(self.panel, -1, label = 'Computation Options', size = (-1,-1))
         ncores_label = wx.StaticText(self.panel, -1, label = 'Number of Cores:', size = (-1,-1))
@@ -289,7 +291,7 @@ class APS_13BM(wx.Frame):
         nchunks_label = wx.StaticText(self.panel, -1, label = '  Number of Chunks: ', size = (-1,-1))
         self.nchunk_blank = wx.TextCtrl(self.panel, -1, value = '128')
         self.nchunk = 128
-        
+
         '''
         Setting up the GUI Sizers for layout of initialized widgets.
         '''
@@ -297,43 +299,43 @@ class APS_13BM(wx.Frame):
         windowSizer = wx.BoxSizer(wx.HORIZONTAL)
         leftSizer = wx.BoxSizer(wx.VERTICAL)
         rightSizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         ## Creating Sizers for the left column.
         info_fname_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         info_path_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         info_status_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         preprocessing_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_panel_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_pad_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_ring_width_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_zinger_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         preprocessing_preprocess_button_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         centering_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         recon_upper_center_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         recon_lower_center_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         centering_method_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         centering_button_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         recon_algo_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         recon_algo_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         recon_filter_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         recon_button_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
 
         ## Creating Sizers for the right column.
         dim_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         dim_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         data_int_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         viz_box_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         slice_view_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         movie_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         pp_label_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         pp_filter_Sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         save_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         save_recon_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         comp_opt_title_Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -417,19 +419,19 @@ class APS_13BM(wx.Frame):
         pp_label_Sizer.Add(pp_label, wx.ALL|wx.EXPAND, 5)
         pp_filter_Sizer.Add(pp_filter_label, -1, wx.ALL, 5)
         pp_filter_Sizer.Add(self.pp_filter_menu, wx.ALL|wx.EXPAND, 5)
-        pp_filter_Sizer.Add(self.pp_filter_button, wx.ALL|wx.EXPAND, 5)     
+        pp_filter_Sizer.Add(self.pp_filter_button, wx.ALL|wx.EXPAND, 5)
         ## Data export panel.
         save_title_Sizer.Add(save_title, wx.ALL|wx.EXPAND, 5)
         save_recon_Sizer.Add(self.save_dtype_menu, wx.ALL|wx.EXPAND,5)
         save_recon_Sizer.Add(self.save_data_type_menu, wx.ALL|wx.EXPAND, 5)
-        save_recon_Sizer.Add(save_recon_button, wx.ALL|wx.EXPAND, 5)    
+        save_recon_Sizer.Add(save_recon_button, wx.ALL|wx.EXPAND, 5)
         ## Computation Options panel
         comp_opt_title_Sizer.Add(comp_opt_title, wx.ALL|wx.EXPAND, 5)
         comp_opt_cores_n_chunks_Sizer.Add(ncores_label, wx.ALL|wx.EXPAND, 5)
         comp_opt_cores_n_chunks_Sizer.Add(self.ncore_blank, wx.ALL|wx.EXPAND, 5)
         comp_opt_cores_n_chunks_Sizer.Add(nchunks_label, wx.ALL|wx.EXPAND, 5)
         comp_opt_cores_n_chunks_Sizer.Add(self.nchunk_blank, wx.ALL|wx.EXPAND, 5)
-        
+
         '''
         Adding to leftSizer.
         '''
@@ -456,7 +458,7 @@ class APS_13BM(wx.Frame):
         leftSizer.Add(recon_algo_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         leftSizer.Add(recon_filter_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         leftSizer.Add(recon_button_Sizer, 0, wx.ALL|wx.EXPAND, 5)
-                
+
         '''
         Adding to rightSizer.
         '''
@@ -475,7 +477,7 @@ class APS_13BM(wx.Frame):
         rightSizer.Add(wx.StaticLine(self.panel), 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(comp_opt_title_Sizer, 0, wx.ALL|wx.EXPAND, 5)
         rightSizer.Add(comp_opt_cores_n_chunks_Sizer, 0, wx.ALL|wx.EXPAND, 5)
-        
+
         '''
         Adding left and right sizers to main sizer.
         '''
@@ -484,9 +486,9 @@ class APS_13BM(wx.Frame):
         windowSizer.Add(rightSizer, 0, wx.ALL|wx.EXPAND, 10)
         self.panel.SetSizer(windowSizer)
         windowSizer.Fit(self)
-        
+
     '''
-    Methods called by widgets from above. Organized by location. 
+    Methods called by widgets from above. Organized by location.
     First set of methods are closely associated with the main menu bar.
     '''
     def client_read_nc(self, event):
@@ -507,14 +509,14 @@ class APS_13BM(wx.Frame):
                 with open(path, 'r') as file:
                     fname = file
                     _path, _fname = os.path.split(path)
-                    self.fname1 = file 
+                    self.fname1 = file
                     if _fname.endswith('.nc'):
                         '''
-                        Reading in .nc files. APS 13BM format. 
+                        Reading in .nc files. APS 13BM format.
                         Reads in 2 flats (.nc), .setup, and data (.nc).
                         '''
                         ## Gather list of all .nc files sharing same fname string.
-                        fname = glob.glob(_fname[0:-5]+"*[1-3].nc") 
+                        fname = glob.glob(_fname[0:-5]+"*[1-3].nc")
                         ## Entries 1 and 3 of fname list are flat fields.
                         ## Read in second entry (fname[1]), which houses the data.
                         self.data = dx.exchange.read_aps_13bm(fname[1],format='netcdf4')
@@ -527,7 +529,7 @@ class APS_13BM(wx.Frame):
                         for line in setup_data:
                             words = line[:-1].split(':',1)
                             result[words[0].lower()] = words[1]
-                        self.dark = float(result['dark_current'])                       
+                        self.dark = float(result['dark_current'])
                         ## Read in both flat field files.
                         self.flat1 = dx.exchange.read_aps_13bm(fname[0],format = 'netcdf4')
                         self.flat2 = dx.exchange.read_aps_13bm(fname[2],format = 'netcdf4')
@@ -536,16 +538,16 @@ class APS_13BM(wx.Frame):
                         ## Storing the dimensions for updating GUI.
                         self.sx = self.data.shape[2]
                         self.sy = self.data.shape[1]
-                        self.sz = self.data.shape[0]                        
+                        self.sz = self.data.shape[0]
                         self.data_min = self.data.min()
                         self.data_max = self.data.max()
                         ## Updating the GUI.
                         self._fname = _fname[0:-5]
-                        self.update_info(path=_path, 
-                                         fname=self._fname, 
-                                         sx=self.sx, 
-                                         sy=self.sy, 
-                                         sz=self.sz, 
+                        self.update_info(path=_path,
+                                         fname=self._fname,
+                                         sx=self.sx,
+                                         sy=self.sy,
+                                         sz=self.sz,
                                          dark=self.dark,
                                          data_max=self.data_max,
                                          data_min=self.data_min)
@@ -554,7 +556,7 @@ class APS_13BM(wx.Frame):
                         self.upper_rot_center_blank.SetValue(str(self.sx/2))
                         self.lower_rot_slice_blank.SetValue(str(int(self.sz-3*(self.sz/4))))
                         self.lower_rot_center_blank.SetValue(str(self.sx/2))
-                        self.status_ID.SetLabel('Data Imported') 
+                        self.status_ID.SetLabel('Data Imported')
                         ## Time stamping.
                         t1 = time.time()
                         total = t1-t0
@@ -572,7 +574,7 @@ class APS_13BM(wx.Frame):
                         # Storing the dimensions for updating GUI.
                         self.sx = self.data.shape[2]
                         self.sy = self.data.shape[1]
-                        self.sz = self.data.shape[0]                        
+                        self.sz = self.data.shape[0]
                         ## Updating the GUI.
                         self._fname = _fname[0:-5]
                         self.dark = 'NA'
@@ -583,10 +585,10 @@ class APS_13BM(wx.Frame):
                         ## Time stamping.
                         t1 = time.time()
                         total = t1-t0
-                        print('Time reading in files ', total)            
+                        print('Time reading in files ', total)
             except IOError:
-                wx.LogError("Cannot open file '%s'." % newfile)       
-         
+                wx.LogError("Cannot open file '%s'." % newfile)
+
     def update_info(self, path=None, fname=None, sx=None, sy=None, sz=None, dark=None, data_max=None, data_min=None):
         '''
         Updates GUI info when files are imported
@@ -601,18 +603,18 @@ class APS_13BM(wx.Frame):
         if sz is not None:
             self.sz_ID.SetLabel(str(self.sz))
         if fname is not None:
-            self.file_ID.SetLabel(fname) 
+            self.file_ID.SetLabel(fname)
         if dark is not None:
-            self.dark_ID.SetLabel(str(self.dark))   
+            self.dark_ID.SetLabel(str(self.dark))
         if data_max is not None:
             self.data_max_ID.SetLabel(str(self.data_max))
         if data_min is not None:
             self.data_min_ID.SetLabel(str(self.data_min))
-            
+
     def change_dir(self, event):
         '''
         Allows user to change directory where files will be saved.
-        This does not automatically read in files within the newly 
+        This does not automatically read in files within the newly
         specified directory.
         '''
         dlg =  wx.DirDialog(self, "Choose Directory","",
@@ -629,8 +631,8 @@ class APS_13BM(wx.Frame):
         if len(path) > 0:
             self.path_ID.SetLabel(path)
             os.chdir(path)
-        print('new dir', os.getcwd)     
-    
+        print('new dir', os.getcwd)
+
     def client_free_mem(self, event):
         '''
         Deletes stored variables from memory, and resets labels on GUI.
@@ -653,21 +655,21 @@ class APS_13BM(wx.Frame):
             if self.plotframe != None:  self.plotframe.onExit()
         except:
             pass
-        self.Destroy()  
+        self.Destroy()
 
 
     '''
     METHODS SPECIFIC TO WIDGETS ON UI.
-    '''     
+    '''
     def onChecked(self, event = None):
         '''
-        Allows user to not normalize to air at edge if sample takes up entire 
+        Allows user to not normalize to air at edge if sample takes up entire
         field of view.
         '''
         self.cb = event.GetEventObject()
         self.cb = self.cb.GetValue()
         print('Box checked ', self.cb)
-    
+
     def pad_size_combo_recall (self, event = None):
         '''
         Sets sinogram pad size if user adjusts from default.
@@ -683,7 +685,7 @@ class APS_13BM(wx.Frame):
         '''
         Removes ring artifact from reconstructed data.
         '''
-        self.status_ID.SetLabel('Deringing')     
+        self.status_ID.SetLabel('Deringing')
         ## Setting up timestamp.
         t0 = time.time()
         ## Pull user specified processing power.
@@ -692,8 +694,8 @@ class APS_13BM(wx.Frame):
         ring_width = int(self.ring_width_blank.GetValue())
         ## If ring width is an even number, make odd.
         if ring_width % 2 == 0:
-            ring_width = ring_width + 1     
-        ## Remove Ring      
+            ring_width = ring_width + 1
+        ## Remove Ring
         print('kernel size is ', ring_width)
         self.data = tp.prep.stripe.remove_stripe_sf(self.data,
                                                     size = ring_width)
@@ -702,7 +704,7 @@ class APS_13BM(wx.Frame):
         t1 = time.time()
         print('made it through ring removal.', t1-t0)
         self.status_ID.SetLabel('Ring removed.')
-        
+
     def zinger_removal(self, event):
         '''
         Remove zingers from raw data.
@@ -751,9 +753,9 @@ class APS_13BM(wx.Frame):
         self.nchunk = int(self.nchunk_blank.GetValue())
         self.ncore = int(self.ncore_blank.GetValue())
         ## First normalization using flats and dark current.
-        self.data = tp.normalize(self.data, 
-                                 flat=self.flat, 
-                                 dark=self.dark, 
+        self.data = tp.normalize(self.data,
+                                 flat=self.flat,
+                                 dark=self.dark,
                                  ncore = self.ncore)
         ## Additional normalization using the 10 outter most air pixels.
         if self.cb == True:
@@ -767,15 +769,15 @@ class APS_13BM(wx.Frame):
                 return
             else:
                 self.npad = int( (int(self.pad_size) - self.data.shape[2] ) / 2)
-                self.data = tp.misc.morph.pad(self.data, 
-                                              axis = 2, 
-                                              npad =self.npad, 
-                                              mode = 'edge')   
+                self.data = tp.misc.morph.pad(self.data,
+                                              axis = 2,
+                                              npad =self.npad,
+                                              mode = 'edge')
         ## Delete dark field array as we no longer need it.
         del self.dark
         ## Scale data for I0 as 0.
         tp.minus_log(self.data, out = self.data)
-        self.data = tp.remove_nan(self.data, 
+        self.data = tp.remove_nan(self.data,
                                   val = 0.,
                                   ncore = self.ncore)
         self.data_max = self.data.max()
@@ -784,25 +786,25 @@ class APS_13BM(wx.Frame):
         path = None
         dark = None
         fname = None
-        self.update_info(path=path, 
-                         fname=fname, 
-                         sx=self.sx, 
-                         sy=self.sy, 
-                         sz=self.sz, 
+        self.update_info(path=path,
+                         fname=fname,
+                         sx=self.sx,
+                         sy=self.sy,
+                         sz=self.sz,
                          dark=dark,
                          data_max=self.data_max,
-                         data_min=self.data_min)    
+                         data_min=self.data_min)
         ## Set status update for user.
         self.status_ID.SetLabel('Preprocessing Complete')
         ## Timestamping.
         t1 = time.time()
         total = t1-t0
         print('data dimensions ',self.data.shape, type(self.data), self.data.dtype, 'min ', self.data.min(), 'max', self.data.max())
-        print('Normalization time was ', total)   
+        print('Normalization time was ', total)
 
     def find_rot_center(self, event=None):
         '''
-        Allows user to find rotation centers of two slices. Then displays the 
+        Allows user to find rotation centers of two slices. Then displays the
         average of those centers.
         '''
         self.status_ID.SetLabel('Centering')
@@ -814,12 +816,12 @@ class APS_13BM(wx.Frame):
         upper_slice = int(self.upper_rot_slice_blank.GetValue())
         lower_slice = int(self.lower_rot_slice_blank.GetValue())
         upper_center = float(self.upper_rot_center_blank.GetValue())
-        lower_center = float(self.lower_rot_center_blank.GetValue())   
+        lower_center = float(self.lower_rot_center_blank.GetValue())
         if self.find_center_type == 'Entropy':
             self.upper_rot_center = float(tp.find_center(self.data[upper_slice:upper_slice+1,:,:],
-                                                   self.theta, 
+                                                   self.theta,
                                                    ind = upper_slice,
-                                                   init=upper_center, 
+                                                   init=upper_center,
                                                    tol=tol,
                                                    sinogram_order = False))
             self.lower_rot_center = float(tp.find_center(self.data[lower_slice:lower_slice+1,:,:],
@@ -840,8 +842,8 @@ class APS_13BM(wx.Frame):
             ## This finds the slice at 180 from the input slice.
             u_slice2 = (upper_slice + int(self.data.shape[0]/2)) % self.data.shape[0]
             upper_proj2 = self.data[u_slice2,:,:]
-            self.upper_rot_center = tp.find_center_pc(upper_proj1, 
-                                                      upper_proj2, 
+            self.upper_rot_center = tp.find_center_pc(upper_proj1,
+                                                      upper_proj2,
                                                       tol = tol)
             lower_proj1 = self.data[lower_slice,:,:]
             l_slice2 = (lower_slice + int(self.data.shape[0]/2)) % self.data.shape[0]
@@ -850,25 +852,25 @@ class APS_13BM(wx.Frame):
                                                       lower_proj2,
                                                       tol = tol)
             self.rot_center = (self.upper_rot_center + self.lower_rot_center) / 2
-        ## Vghia Vo works very well with 13BM data.   
+        ## Vghia Vo works very well with 13BM data.
         if self.find_center_type == 'Vghia Vo':
             self.upper_rot_center = tp.find_center_vo(self.data[:,upper_slice:upper_slice+1,:])
             self.lower_rot_center = tp.find_center_vo(self.data[:,lower_slice:lower_slice+1,:])
-            self.rot_center = (self.upper_rot_center + self.lower_rot_center) / 2	 
+            self.rot_center = (self.upper_rot_center + self.lower_rot_center) / 2
         ## Timestamping.
         t1 = time.time()
         total = t1-t0
         print('Time to find center was ', total)
         self.status_ID.SetLabel('Rotation Center found.')
         print('success, rot center is ', self.rot_center)
-        ## Updating the GUI for the calculated values. 
+        ## Updating the GUI for the calculated values.
 
         self.upper_rot_center_blank.SetLabel(str((self.upper_rot_center-self.npad)))
         self.lower_rot_center_blank.SetLabel(str((self.lower_rot_center-self.npad)))
 
     def up_recon_slice (self, event):
         '''
-        Slice reconstruction methods. 
+        Slice reconstruction methods.
         '''
         self.status_ID.SetLabel('Reconstructing slice.')
         t0 = time.time()
@@ -876,7 +878,7 @@ class APS_13BM(wx.Frame):
         ## Remember to remove this before syncing.
         if self.npad != 0:
             upper_rot_center = float(upper_rot_center+self.npad)
-        start = int(self.upper_rot_slice_blank.GetValue())        
+        start = int(self.upper_rot_slice_blank.GetValue())
         self.data_slice = self.data[:,start:start+1,:]
         self.data_slice = tp.recon(self.data_slice,
                                    self.theta,
@@ -890,14 +892,14 @@ class APS_13BM(wx.Frame):
 
     def lower_recon_slice (self, event):
         '''
-        Slice reconstruction methods. 
+        Slice reconstruction methods.
         '''
         self.status_ID.SetLabel('Reconstructing slice.')
         t0 = time.time()
         lower_rot_center = float(self.lower_rot_center_blank.GetValue())
         if self.npad != 0:
             lower_rot_center = float(lower_rot_center+self.npad)
-        start = int(self.lower_rot_slice_blank.GetValue())        
+        start = int(self.lower_rot_slice_blank.GetValue())
         self.data_slice = self.data[:,start:start+1,:]
         self.data_slice = tp.recon(self.data_slice,
                                    self.theta,
@@ -907,7 +909,7 @@ class APS_13BM(wx.Frame):
         t1 = time.time()
         print('Slice recon time ', t1-t0)
         self.status_ID.SetLabel('Slice Reconstructed.')
-        self.plot_slice_data()    
+        self.plot_slice_data()
 
     def find_center_algo_type (self, event):
         '''
@@ -925,7 +927,7 @@ class APS_13BM(wx.Frame):
         if self.recon_type == 'Block Algebraic':
             self.recon_type = 'bart'
         if self.recon_type == 'Filtered Back-projection':
-            self.recon_type = 'fbp' 
+            self.recon_type = 'fbp'
         if self.recon_type == 'Gridrec':
             self.recon_type = 'gridrec'
         if self.recon_type == 'Max-likelihood Expectation':
@@ -946,13 +948,13 @@ class APS_13BM(wx.Frame):
             self.recon_type = 'tv',
         if self.recon_type == 'Gradient Descent':
             self.recon_type = 'grad'
-        print('Recon algorithm is ', self.recon_type)       
+        print('Recon algorithm is ', self.recon_type)
 
     def OnFilterCombo(self, event):
         '''
         Sets the reconstruction filter if adjusted from default.
         '''
-        self.filter_type = self.filter_menu.GetStringSelection()      
+        self.filter_type = self.filter_menu.GetStringSelection()
 
     def tilt_correction(self, event):
         '''
@@ -972,14 +974,14 @@ class APS_13BM(wx.Frame):
         bottom_slice = float(self.lower_rot_slice_blank.GetValue())
         angle = (top_center - bottom_center)/(bottom_slice - top_slice)
         print('angle is ', angle)
-        for i in range(nangles-1): 
+        for i in range(nangles-1):
             projection = self.data[i,:,:]
             r = scipy.ndimage.rotate(projection, angle)
             self.data[i,:,:] = r #might need to remove the float from here. Could be breaking it. Integer?
         t1 = time.time()
         print('Time to tilt ', t1-t0)
         print('New dimnsions are ', self.data.shape, 'Data type is', type(self.data), 'dtype is ', self.data.dtype)
-        self.status_ID.SetLabel('Tilt Corrected')  
+        self.status_ID.SetLabel('Tilt Corrected')
 
     def reconstruct(self, event):
         '''
@@ -1003,17 +1005,17 @@ class APS_13BM(wx.Frame):
         center_slope = (lower_rot_center - upper_rot_center) / float(self.data.shape[0])
         center_array = upper_rot_center + (np.arange(self.data.shape[0])*center_slope)
         ## Reconstruct the data.
-        self.data = tp.recon(self.data, 
-                             self.theta, 
-                             center = center_array, 
+        self.data = tp.recon(self.data,
+                             self.theta,
+                             center = center_array,
                              sinogram_order = False,
-                             algorithm = self.recon_type, 
+                             algorithm = self.recon_type,
                              filter_name = self.filter_type,
                              ncore = self.ncore,
                              nchunk = self.nchunk)
         self.data = tp.remove_nan(self.data)
-        print('made it through recon.', self.data.shape, type(self.data), self.data.dtype)        
-        self.status_ID.SetLabel('Reconstruction Complete')               
+        print('made it through recon.', self.data.shape, type(self.data), self.data.dtype)
+        self.status_ID.SetLabel('Reconstruction Complete')
         t1 = time.time()
         total = t1-t0
         print('Reconstruction time was ', total)
@@ -1027,21 +1029,21 @@ class APS_13BM(wx.Frame):
         path = None
         dark = None
         fname = None
-        self.update_info(path=path, 
-                         fname=fname, 
-                         sx=self.sx, 
-                         sy=self.sy, 
-                         sz=self.sz, 
+        self.update_info(path=path,
+                         fname=fname,
+                         sx=self.sx,
+                         sy=self.sy,
+                         sz=self.sz,
                          dark=dark,
                          data_max=self.data_max,
-                         data_min=self.data_min)    
-        
+                         data_min=self.data_min)
+
     def OnRadiobox(self, event):
         '''
         Adjusts what view the user wishes to see in plotting window.
-        '''    
+        '''
         self.plot_type = self.visualization_box.GetStringSelection()
-        print('Slice view from Radiobox is ', self.plot_type)          
+        print('Slice view from Radiobox is ', self.plot_type)
 
     def OnIntModeBox(self, event = None):
             self.int_mode = self.int_mode_menu.GetStringSelection()
@@ -1057,7 +1059,7 @@ class APS_13BM(wx.Frame):
     def filter_pp_data(self, event):
         '''
         Post processing step. Filters the reconstruction data based on the above
-        filter type selection. This is a secondary filter separate from the 
+        filter type selection. This is a secondary filter separate from the
         filtering during reconstruction.
         '''
         self.status_ID.SetLabel('Filtering')
@@ -1077,9 +1079,9 @@ class APS_13BM(wx.Frame):
 
     def OnSaveDtypeCombo (self, event):
         '''
-        Data export parameters. All data are exported as intergers with choice of 
+        Data export parameters. All data are exported as intergers with choice of
         8 bit, 16 bit, or 32 bit.
-        '''    
+        '''
         self.save_dtype = self.save_dtype_menu.GetStringSelection()
         if self.save_dtype == '8 bit unsigned':
             self.save_dtype = 'u1'
@@ -1104,7 +1106,7 @@ class APS_13BM(wx.Frame):
     def save_recon(self, event=None):
         '''
         Method for saving. Data are converted based on user specified options,
-        then exported as tif stack or netcdf3 .volume file. Format conversions 
+        then exported as tif stack or netcdf3 .volume file. Format conversions
         are very slow. Raw data usually saves quickly, but data that has been
         changed to float format is slow.
         '''
@@ -1165,48 +1167,48 @@ class APS_13BM(wx.Frame):
             print('Beginning saving .vol')
             ## Creates the empty file, and adds metadata.
             ncfile = Dataset(self._fname+'_tomopy_recon.volume', 'w', format = 'NETCDF3_64BIT', clobber = True) # Will overwrite if pre-existing file is found.
-            ncfile.description = 'Tomography dataset'                             
+            ncfile.description = 'Tomography dataset'
             ncfile.source = 'APS GSECARS 13BM'
             ncfile.history = "Created "+time.ctime(time.time())
-            ## Creates the correct dimensions for the file.         
+            ## Creates the correct dimensions for the file.
             NX = ncfile.createDimension('NX', save_data.shape[2])
             NY = ncfile.createDimension('NY', save_data.shape[1])
             NZ = ncfile.createDimension('NZ', save_data.shape[0])
             print('save_dtype is ', self.save_dtype)
             ## Creates variable for data based on previously constructed dimensions.
-            volume = ncfile.createVariable('VOLUME',  self.save_dtype, ('NZ','NY','NX',)) 
+            volume = ncfile.createVariable('VOLUME',  self.save_dtype, ('NZ','NY','NX',))
             ## Copies data into empty file array.
             volume[:] = save_data
             print('volume ', volume.shape, type(volume), volume.dtype)
-            ncfile.close()   
+            ncfile.close()
         del save_data
         self.status_ID.SetLabel('Saving completed.')
         t1 = time.time()
         total = t1-t0
-        print('Time saving data ', total)  
-    
-    ''' 
+        print('Time saving data ', total)
+
+    '''
     Plotting methods.
-    '''       
+    '''
     def create_ImageFrame(self):
         '''
         Setups the plotting window.
         '''
         if self.image_frame is None:
-            self.image_frame = ImageFrame(self) 
-            self.image_frame.Show()   
-        
+            self.image_frame = ImageFrame(self)
+            self.image_frame.Show()
+
     def plot_slice_data (self,event=None):
 
         if self.data_slice is None: # user forgot to enter a slice.
             return
-        image_frame = ImageFrame(self) 
+        image_frame = ImageFrame(self)
         try:
             z = 0
         except ValueError:  # user forgot to enter slice or entered bad slice.
             self.status_ID.SetLabel('Please input an upper slice.')
-        ## Plotting data. 
-        d_data = self.data_slice[z, ::-1, :]          
+        ## Plotting data.
+        d_data = self.data_slice[z, ::-1, :]
         ## Setting up parameters and plotting.
         if d_data is not None:
             image_frame.panel.conf.interp = 'hanning'
@@ -1218,19 +1220,19 @@ class APS_13BM(wx.Frame):
 
     def plotData(self, event):
         '''
-        Plots when the 'Plot Image' button is pressed. 
+        Plots when the 'Plot Image' button is pressed.
         Plot view depends on Data Visualization view option and slice.
         Defaults to an additional hanning filter.
-        Defaults to gray scale reversed so that bright corresponds to higher 
+        Defaults to gray scale reversed so that bright corresponds to higher
         density.
         '''
         if self.data is None:   # no data loaded by user.
             return
         ## Calls plotting frame.
-        image_frame = ImageFrame(self) 
+        image_frame = ImageFrame(self)
         try:
             ## Look for slice to display.
-            self.z = self.z_dlg.GetValue() 
+            self.z = self.z_dlg.GetValue()
             z = int(self.z)
             print('read in z and plot_type.', self.z)
 
@@ -1243,15 +1245,15 @@ class APS_13BM(wx.Frame):
         ## Plot an mask if reconstruction is not gridrec.
         if self.recon_type != 'gridrec':
                 d_data = tp.circ_mask(d_data, axis = 0, ratio = 0.95)
-        ## Plot according to the users input. Default is slice view.        
+        ## Plot according to the users input. Default is slice view.
         if self.plot_type.startswith('Z'): #  Slice':
-            d_data = self.data[z, ::-1, :]          
+            d_data = self.data[z, ::-1, :]
         if self.plot_type.startswith('Y'): #  Sinogram':
             d_data = self.data[::-1,  z, :]
         if self.plot_type.startswith('X'): #  Sinogram':
             d_data = self.data[::-1, :, z]
         ## Setting up parameters and plotting.
-        if d_data is not None:       
+        if d_data is not None:
             image_frame.panel.conf.interp = 'hanning'
             image_frame.display(1.0*d_data, auto_contrast=True, colormap='gist_gray_r')
             image_frame.Show()
@@ -1259,7 +1261,7 @@ class APS_13BM(wx.Frame):
         else:
             print("cannot figure out how to get data from plot_type ", self.plot_type)
         del d_data
-            
+
     def onMovieFrame(self, event=None):
         '''
         Updates the image from to allow user to view movie.
@@ -1271,16 +1273,16 @@ class APS_13BM(wx.Frame):
             print("Stop timer")
             return
         self.movie_iframe.panel.update_image(self.data[self.movie_index, ::-1, :])
-        
+
     def movie_maker (self, event):
         '''
-        Currently this is super slow. 
+        Currently this is super slow.
         '''
         self.status_ID.SetLabel('Movie started.')
         self.stop_movie.Enable()
         self.movie_iframe = ImageFrame(self)
         d_data = self.data
-        if d_data is not None:       
+        if d_data is not None:
             self.movie_iframe.panel.conf.interp = 'hanning'
             self.movie_iframe.display(1.0*d_data[0,::-1,:], contrast_level=0.5, colormap='gist_gray_r')
             self.movie_iframe.Show()
@@ -1292,17 +1294,45 @@ class APS_13BM(wx.Frame):
             self.movie_timer.Start()
             del d_data
         self.status_ID.SetLabel('Movie finished.')
-        
+
     def onStop(self, event = None):
         self.movie_timer.Stop()
         self.stop_movie.Disable()
         self.status_ID.SetLabel('Movie finished.')
 
-'''
-Mainloop of the GUI.
-'''
+def tomopy_13bmapp():
+    "run APS13 BM TomoPy GUI"
+    usage = "usage: %prog [options] file(s)"
+    parser = OptionParser(usage=usage, prog="tomopy_13bmapp",  version="1.0")
+
+    parser.add_option("-s", "--shortcut", dest="shortcut", action="store_true",
+                      default=False, help="create desktop shortcut")
+    (options, args) = parser.parse_args()
+
+    # create desktop shortcut
+    if options.shortcut:
+        try:
+            from pyshortcuts import make_shortcut
+        except ImportError:
+            print("cannot make desktop short with `pyshortcuts`")
+            return
+
+
+        icoext = 'icns' if sys.platform=='darwin' else 'ico'
+        bindir = 'Scripts' if os.name=='win' else 'bin'
+
+        script = os.path.join(sys.prefix, bindir, 'tomopy_13bmapp')
+
+        thisfolder, _ = os.path.split(__file__)
+        icon = os.path.join(thisfolder, 'icons', 'pie.%s' % icoext )
+        print("  SCRIPT / ICON ", script, icon)
+        make_shortcut(script, name='TomoPy_13BM', icon=icon, terminal=False)
+
+    else:
+        app = wx.App()
+        f = APS_13BM(None, -1)
+        f.Show(True)
+        app.MainLoop()
+
 if __name__ == '__main__':
-    app = wx.App()
-    f = APS_13BM(None,-1)
-    f.Show(True)
-    app.MainLoop()
+    aps13bm_app()
