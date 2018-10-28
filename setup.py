@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 long_description = """GUI for TomoPY, eesspecially for 13BM"""
 
 install_reqs = ['numpy', 'scipy', 'scikit-image', 'netCDF4', 'tomopy',
-                'dxchange', 'wxPython', 'wxmplot', 'pyshortcut']
+                'dxchange', 'wxPython', 'wxmplot', 'pyshortcuts']
 
 apps = [('tomopy_13bmapp', 'tomopy_ui:tomopy_13bmapp'),]
 
